@@ -1,0 +1,46 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="TENMA AI 競馬予想">
+    <meta name="author" content="ktaskn">
+
+    <title>TENMA</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+
+  <body>
+    <div class="container">
+    <main role="main" class="container">
+        <div>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                    <th scope="col">馬番</th>
+                    <th scope="col">馬名</th>
+                    <th scope="col">予想</th>
+                    <th scope="col">着順</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for idx, row in prediction.iterrows() %}
+                    <tr>
+                        <th scope="row">{{ row['umaban'] }}</th>
+                        <td>{{ row['bamei'] }}</td>
+                        <td>{{ row['predict'] }}</td>
+                        <td>{{ row['actual'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+    </div>
+    <script src="/static/js/jquery-3.3.1.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+  </body>
+</html>
