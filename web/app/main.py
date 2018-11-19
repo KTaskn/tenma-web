@@ -4,8 +4,15 @@ import pandas as pd
 import model
 app = Flask(__name__)
 
+@app.route("/")
+def main():
+    races_name, race_key = model.races()
+    return render_template('index.html',
+        races=zip(races_name, race_key))
+
+
 @app.route("/<raceid>")
-def main(raceid):
+def races(raceid):
     races_name, race_key = model.races()
     if len(raceid) == 12:
         year = raceid[:4]
@@ -24,9 +31,10 @@ def main(raceid):
             "predict": [],
             "actual": [],
         })
-    return render_template('index.html',
+    return render_template('list.html',
         prediction=prediction,
-        races=zip(races_name, race_key))
+        races=zip(races_name, race_key),
+        now=raceid)
 
 
 if __name__ == "__main__":
