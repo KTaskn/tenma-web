@@ -10,7 +10,39 @@ dbparams = "host={} user={} port={} password={}".format(
         os.environ['DATABASE_PASSWORD']
     )
 
-def prediction():
+def races():
+    dic_jyo = {
+        '01': '札幌',
+        '02': '函館',
+        '03': '福島',
+        '04': '新潟',
+        '05': '東京',
+        '06': '中山',
+        '07': '中京',
+        '08': '京都',
+        '09': '阪神',
+        '10': '小倉'
+    }
+    query = """
+    SELECT
+        COALESCE(t_predict.year::text, '') AS yaer,
+        LPAD(COALESCE(t_predict.monthday::text, ''), 4, '0') AS monthday,
+        LPAD(COALESCE(t_predict.jyocd::text, ''), 2, '0') AS jyocd,
+        LPAD(COALESCE(t_predict.racenum::text, ''), 2, '0') AS racenum
+    FROM t_predict
+    GROUP BY year, monthday, jyocd, racenum
+    ORDER BY year, monthday, jyocd, racenum;
+    """
+    with psycopg2.connect(dbparams) as conn:
+        df = pd.io.sql.read_sql_query(query, conn)
+    l_text = []
+    l_key = []
+    for year, monthday, jyocd, racenum in df.values:
+        l_text.append("%s-%s-%s %s %sR" % (year, monthday[:2], monthday[2:4], dic_jyo[jyocd], racenum))
+        l_key.append("%s%s%s%s%s" % (year, monthday[:2], monthday[2:4], jyocd, racenum))
+    return l_text, l_key
+
+def prediction(year, monthday, jyocd, racenum):
     query = """
     SELECT
         COALESCE(t_umaban.umaban, '') AS umaban,
@@ -28,7 +60,11 @@ def prediction():
         AND t_predict.monthday = t_umaban.monthday
         AND t_predict.jyocd = t_umaban.jyocd
         AND t_predict.racenum = t_umaban.racenum
-        AND t_predict.kettonum = t_umaban.kettonum;
+        AND t_predict.kettonum = t_umaban.kettonum
+    WHERE t_predict.year = '%s'
+    AND t_predict.monthday = '%s'
+    AND t_predict.jyocd = '%s'
+    AND t_predict.racenum = '%s';
     """
     with psycopg2.connect(dbparams) as conn:
-        return pd.io.sql.read_sql_query(query, conn)
+        return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum)), conn)
