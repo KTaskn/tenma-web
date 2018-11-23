@@ -1,13 +1,14 @@
-# coding:utf-8
+# coding: utf-8
 import os
 import psycopg2
 import pandas as pd
 
-dbparams = "host={} user={} port={} password={}".format(
+dbparams = "host={} user={} port={} password={} dbname={}".format(
         os.environ['DATABASE_HOST'],
         os.environ['DATABASE_USER'],
         os.environ['DATABASE_PORT'],
-        os.environ['DATABASE_PASSWORD']
+        os.environ['DATABASE_PASSWORD'],
+        os.environ['DATABASE_NAME']
     )
 
 def races():
@@ -34,6 +35,7 @@ def races():
     ORDER BY year, monthday, jyocd, racenum;
     """
     with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
         df = pd.io.sql.read_sql_query(query, conn)
     l_text = []
     l_key = []
@@ -47,7 +49,7 @@ def prediction(year, monthday, jyocd, racenum):
     SELECT
         COALESCE(t_umaban.umaban, '') AS umaban,
         COALESCE(t_name.bamei, '') AS bamei,
-        COALESCE(t_predict.predict::text, '') AS predict,
+        COALESCE(t_predict.predict::text, '')::int AS predict,
         COALESCE(t_actual.actual::text, '') AS actual
     FROM t_predict
     LEFT JOIN t_name ON t_predict.kettonum = t_name.kettonum
@@ -64,7 +66,9 @@ def prediction(year, monthday, jyocd, racenum):
     WHERE t_predict.year = '%s'
     AND t_predict.monthday = '%s'
     AND t_predict.jyocd = '%s'
-    AND t_predict.racenum = '%s';
+    AND t_predict.racenum = '%s'
+    ORDER BY predict;
     """
     with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
         return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum)), conn)
