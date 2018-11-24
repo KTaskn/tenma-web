@@ -10,6 +10,7 @@ services:
       - "DATABASE_PORT=5432"
       - "DATABASE_USER=postgres"
       - "DATABASE_PASSWORD=mysecretpassword1234"
+      - "DATABASE_NAME=tenmadb"
     links:
       - db
     volumes:
