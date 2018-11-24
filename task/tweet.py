@@ -46,7 +46,7 @@ def get_text(year, monthday, racenum):
 
     l_text = []
     for jyocd, grp in df.groupby('jyocd').__iter__():
-        l_bamei = grp.values
+        l_bamei = grp['bamei'].values
         l_text.append("%s %02dR\n ◎ %s\n ○ %s\n ▲%s\n 他のレースも http://tenmaai.info/ で見れます。\n" % (
             dic_jyo["%02d" % int(jyocd)],
             int(racenum),
@@ -55,7 +55,7 @@ def get_text(year, monthday, racenum):
             l_bamei[2]
         ))
 
-        return l_text
+    return l_text
 
 # Consumer Key
 CK = os.environ['CK']
