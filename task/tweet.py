@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
 import os
+import datetime
 from requests_oauthlib import OAuth1Session
 import psycopg2
 import pandas as pd
@@ -44,54 +46,58 @@ def get_text(year, monthday, racenum):
         conn.set_client_encoding('UTF8')
         df = pd.io.sql.read_sql_query(query % (year, monthday, int(racenum)), conn)
 
-    l_text = []
-    for jyocd, grp in df.groupby('jyocd').__iter__():
-        l_bamei = grp['bamei'].values
-        l_text.append("%s %02dR\n ◎ %s\n ○ %s\n ▲%s\n 他のレースも http://tenmaai.info/ で見れます。\n" % (
-            dic_jyo["%02d" % int(jyocd)],
-            int(racenum),
-            l_bamei[0],
-            l_bamei[1],
-            l_bamei[2]
-        ))
+    if len(df.index) > 0:
+        l_text = []
+        for jyocd, grp in df.groupby('jyocd').__iter__():
+            l_bamei = grp['bamei'].values
+            l_text.append("%s %02dR\n ◎ %s\n ○ %s\n ▲%s\n 他のレースも http://tenmaai.info/ で見れます。\n" % (
+                dic_jyo["%02d" % int(jyocd)],
+                int(racenum),
+                l_bamei[0],
+                l_bamei[1],
+                l_bamei[2]
+            ))
 
-    return l_text
+        return l_text
+    return []
 
-# Consumer Key
-CK = os.environ['CK']
-# Consumer Secret
-CS = os.environ['CS']
-# Access Token
-AT = os.environ['AT']
-# Accesss Token Secert
-AS = os.environ['AS']
+if __name__ == "__main__":
+    # Consumer Key
+    CK = os.environ['CK']
+    # Consumer Secret
+    CS = os.environ['CS']
+    # Access Token
+    AT = os.environ['AT']
+    # Accesss Token Secert
+    AS = os.environ['AS']
 
-# ツイート投稿用のURL
-url = "https://api.twitter.com/1.1/statuses/update.json"
+    # ツイート投稿用のURL
+    url = "https://api.twitter.com/1.1/statuses/update.json"
 
-# ツイート本文
-dbparams = "host={} user={} port={} password={} dbname={}".format(
-    os.environ['DATABASE_HOST'],
-    os.environ['DATABASE_USER'],
-    os.environ['DATABASE_PORT'],
-    os.environ['DATABASE_PASSWORD'],
-    os.environ['DATABASE_NAME']
-)
+    # ツイート本文
+    dbparams = "host={} user={} port={} password={} dbname={}".format(
+        os.environ['DATABASE_HOST'],
+        os.environ['DATABASE_USER'],
+        os.environ['DATABASE_PORT'],
+        os.environ['DATABASE_PASSWORD'],
+        os.environ['DATABASE_NAME']
+    )
 
-year = "2018"
-monthday = "1124"
-racenum = "09"
-l_text = get_text(year, monthday, racenum)
-for text in l_text:
-    params = {"status": text}
+    today = datetime.date.today()
+    year = today.strftime("%Y")
+    monthday = today.strftime("%m%d")
+    racenum = sys.argv[1]
+    l_text = get_text(year, monthday, racenum)
+    for text in l_text:
+        params = {"status": text}
 
-    # OAuth認証で POST method で投稿
-    twitter = OAuth1Session(CK, CS, AT, AS)
-    req = twitter.post(url, params = params)
+        # OAuth認証で POST method で投稿
+        twitter = OAuth1Session(CK, CS, AT, AS)
+        req = twitter.post(url, params = params)
 
-    # レスポンスを確認
-    if req.status_code == 200:
-        print ("OK")
-    else:
-        print ("Error: %d" % req.status_code)
+        # レスポンスを確認
+        if req.status_code == 200:
+            print ("OK")
+        else:
+            print ("Error: %d" % req.status_code)
 
