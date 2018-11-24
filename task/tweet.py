@@ -6,45 +6,7 @@ from requests_oauthlib import OAuth1Session
 import psycopg2
 import pandas as pd
 
-# Consumer Key
-CK = os.environ['CK']
-# Consumer Secret
-CS = os.environ['CS']
-# Access Token
-AT = os.environ['AT']
-# Accesss Token Secert
-AS = os.environ['AS']
-
-# ツイート投稿用のURL
-url = "https://api.twitter.com/1.1/statuses/update.json"
-
-# ツイート本文
-dbparams = "host={} user={} port={} password={} dbname={}".format(
-    os.environ['DATABASE_HOST'],
-    os.environ['DATABASE_USER'],
-    os.environ['DATABASE_PORT'],
-    os.environ['DATABASE_PASSWORD'],
-    os.environ['DATABASE_NAME']
-)
-
-year = "2018"
-monthday = "1124"
-racenum = "09"
-l_text = get_text(year, monthday, racenum)
-for text in l_text:
-    params = {"status": text}
-
-    # OAuth認証で POST method で投稿
-    twitter = OAuth1Session(CK, CS, AT, AS)
-    req = twitter.post(url, params = params)
-
-    # レスポンスを確認
-    if req.status_code == 200:
-        print ("OK")
-    else:
-        print ("Error: %d" % req.status_code)
-
-def get_text(year, monthday, jyocd, racenum):
+def get_text(year, monthday, racenum):
     dic_jyo = {
         '01': '札幌',
         '02': '函館',
@@ -94,3 +56,42 @@ def get_text(year, monthday, jyocd, racenum):
         ))
 
         return l_text
+
+# Consumer Key
+CK = os.environ['CK']
+# Consumer Secret
+CS = os.environ['CS']
+# Access Token
+AT = os.environ['AT']
+# Accesss Token Secert
+AS = os.environ['AS']
+
+# ツイート投稿用のURL
+url = "https://api.twitter.com/1.1/statuses/update.json"
+
+# ツイート本文
+dbparams = "host={} user={} port={} password={} dbname={}".format(
+    os.environ['DATABASE_HOST'],
+    os.environ['DATABASE_USER'],
+    os.environ['DATABASE_PORT'],
+    os.environ['DATABASE_PASSWORD'],
+    os.environ['DATABASE_NAME']
+)
+
+year = "2018"
+monthday = "1124"
+racenum = "09"
+l_text = get_text(year, monthday, racenum)
+for text in l_text:
+    params = {"status": text}
+
+    # OAuth認証で POST method で投稿
+    twitter = OAuth1Session(CK, CS, AT, AS)
+    req = twitter.post(url, params = params)
+
+    # レスポンスを確認
+    if req.status_code == 200:
+        print ("OK")
+    else:
+        print ("Error: %d" % req.status_code)
+
