@@ -45,8 +45,8 @@ def get_text(year, monthday, racenum):
         df = pd.io.sql.read_sql_query(query % (year, monthday, int(racenum)), conn)
 
     l_text = []
-    for jyocd, grp in df.groupby('bamei').__iter__():
-        l_values = grp.values
+    for jyocd, grp in df.groupby('jyocd').__iter__():
+        l_bamei = grp.values
         l_text.append("%s %02dR\n ◎ %s\n ○ %s\n ▲%s\n 他のレースも http://tenmaai.info/ で見れます。\n" % (
             dic_jyo["%02d" % int(jyocd)],
             int(racenum),
