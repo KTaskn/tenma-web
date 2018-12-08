@@ -1,7 +1,7 @@
 # coding:utf-8
 from flask import Flask, render_template
 import pandas as pd
-import model
+from model import model
 app = Flask(__name__)
 
 @app.route("/")
