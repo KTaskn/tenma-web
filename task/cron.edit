@@ -1,0 +1,13 @@
+#!/bin/sh
+30 8 * * * /work/run.sh 1
+00 9 * * * /work/run.sh 2
+30 9 * * * /work/run.sh 3
+00 10 * * * /work/run.sh 4
+30 10 * * * /work/run.sh 5
+00 11 * * * /work/run.sh 6
+30 11 * * * /work/run.sh 7
+00 12 * * * /work/run.sh 8
+30 12 * * * /work/run.sh 9
+00 13 * * * /work/run.sh 10
+30 13 * * * /work/run.sh 11
+00 14 * * * /work/run.sh 12

@@ -1,0 +1,1 @@
+python3 /work/tweet.py $1
