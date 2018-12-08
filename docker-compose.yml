@@ -5,7 +5,7 @@ services:
     build: web
     container_name: tenma_web_01
     ports:
-      - "3031:3031"
+      - "127.0.0.1:3031:3031"
     environment:
       TZ: "Asia/Tokyo"
       DATABASE_HOST: db
@@ -36,7 +36,7 @@ services:
     image: postgres:10.1
     container_name: tenma_db_01
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./datadir:/var/lib/postgresql/data
     environment:
