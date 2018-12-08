@@ -12,7 +12,6 @@ services:
       DATABASE_PORT: 5432
       DATABASE_USER: ${DB_USER:-postgres}
       DATABASE_PASSWORD: ${DB_PW:-mysecretpassword1234}
-      DATABASE_NAME: tenmadb
     links:
       - db
     volumes:
@@ -31,6 +30,24 @@ services:
       - "${NGINX_PORT:-8888}:80"
     environment:
       TZ: "Asia/Tokyo"
+
+  task:
+    build: ./task
+    container_name: tenma_task_01
+    volumes:
+      - ./task:/work
+    links:
+      - db
+    environment:
+      TZ: "Asia/Tokyo"
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DB_USER:-postgres}
+      DATABASE_PASSWORD: ${DB_PW:-mysecretpassword1234}
+      CK: ${CK:-notset}
+      CS: ${CS:-notset}
+      AT: ${AT:-notset}
+      AS: ${AS:-notset}
 
   db:
     image: postgres:10.1

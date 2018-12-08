@@ -75,12 +75,11 @@ if __name__ == "__main__":
     url = "https://api.twitter.com/1.1/statuses/update.json"
 
     # ツイート本文
-    dbparams = "host={} user={} port={} password={} dbname={}".format(
+    dbparams = "host={} user={} port={} password={}".format(
         os.environ['DATABASE_HOST'],
         os.environ['DATABASE_USER'],
         os.environ['DATABASE_PORT'],
-        os.environ['DATABASE_PASSWORD'],
-        os.environ['DATABASE_NAME']
+        os.environ['DATABASE_PASSWORD']
     )
 
     today = datetime.date.today()
