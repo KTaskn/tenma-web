@@ -3,13 +3,12 @@ import os
 import psycopg2
 import pandas as pd
 
-dbparams = "host={} user={} port={} password={} dbname={}".format(
-        os.environ['DATABASE_HOST'],
-        os.environ['DATABASE_USER'],
-        os.environ['DATABASE_PORT'],
-        os.environ['DATABASE_PASSWORD'],
-        os.environ['DATABASE_NAME']
-    )
+dbparams = "host={} user={} port={} password={}".format(
+    os.environ['DATABASE_HOST'],
+    os.environ['DATABASE_USER'],
+    os.environ['DATABASE_PORT'],
+    os.environ['DATABASE_PASSWORD']
+)
 
 def races():
     dic_jyo = {
