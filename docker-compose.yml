@@ -24,6 +24,7 @@ services:
     container_name: tenma_nginx_01
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./web/static:/static
     links:
       - web
     ports:
@@ -36,6 +37,8 @@ services:
     container_name: tenma_db_01
     ports:
       - "5432:5432"
+    volumes:
+      - ./datadir:/var/lib/postgresql/data
     environment:
       TZ: "Asia/Tokyo"
       POSTGRES_USER: ${DB_USER:-postgres}
