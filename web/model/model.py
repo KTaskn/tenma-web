@@ -31,7 +31,7 @@ def races():
         LPAD(COALESCE(t_predict.racenum::text, ''), 2, '0') AS racenum
     FROM t_predict
     GROUP BY year, monthday, jyocd, racenum
-    ORDER BY year, monthday, jyocd, racenum;
+    ORDER BY year DESC, monthday DESC, jyocd, racenum;
     """
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
