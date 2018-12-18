@@ -1,5 +1,5 @@
 # coding:utf-8
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect
 import pandas as pd
 from model import model
 app = Flask(__name__)
@@ -25,45 +25,57 @@ def get_tweet_text(month, day, jyocd, racenum, prediction):
         '10': '小倉'
     }
     l_bamei = prediction['bamei'].values
-    return "%s月%s日%s%02dRレース予想\n◎ %s ○ %s ▲%s\n" % (
+    text = "%s月%s日%s%02dRレース予想\n" % (
         month,
         day,
         dic_jyo["%02d" % int(jyocd)],
-        int(racenum),
-        l_bamei[0],
-        l_bamei[1],
-        l_bamei[2]
+        int(racenum)
     )
+    for mark, bamei in zip(["◎", "○", "▲"], l_bamei[:3]):
+        text += "%s %s" % (mark, bamei)
+
+    return text
 
 @app.route("/<raceid>")
 def races(raceid):
 
     races_name, race_key = model.races()
-    if len(raceid) == 12:
-        year = raceid[:4]
-        monthday = raceid[4:8]
-        jyocd = raceid[8:10]
-        racenum = raceid[10:12]
-        app.logger.debug(year)
-        app.logger.debug(monthday)
-        app.logger.debug(jyocd)
-        app.logger.debug(racenum)
-        prediction = model.prediction(year, monthday, jyocd, racenum)
-        tweet_text = get_tweet_text(monthday[:2], monthday[2:4], jyocd, racenum, prediction)
-    else:
-        prediction = pd.DataFrame({
-            "umaban": [],
-            "bamei": [],
-            "predict": [],
-            "actual": [],
-        })
-        tweet_text = "TENMA"
 
-    return render_template('list.html',
-        prediction=prediction,
-        races=zip(races_name, race_key),
-        now=raceid,
-        tweet_text=tweet_text)
+    prediction = pd.DataFrame({
+        "umaban": [],
+        "bamei": [],
+        "predict": [],
+        "actual": [],
+    })
+    tweet_text = "TENMA"
+
+    if len(raceid) == 12:
+        try:
+            year = raceid[:4]
+            monthday = raceid[4:8]
+            jyocd = raceid[8:10]
+            racenum = raceid[10:12]
+            app.logger.debug(year)
+            app.logger.debug(monthday)
+            app.logger.debug(jyocd)
+            app.logger.debug(racenum)
+            prediction = model.prediction(year, monthday, jyocd, racenum)
+
+            if len(prediction.index) == 0:
+                return redirect("/", code=404)
+
+
+            tweet_text = get_tweet_text(monthday[:2], monthday[2:4], jyocd, racenum, prediction)
+
+            return render_template('list.html',
+                prediction=prediction,
+                races=zip(races_name, race_key),
+                now=raceid,
+                tweet_text=tweet_text)
+        except Exception as ex:
+            app.logger.exception(ex)
+
+    return redirect("/", code=400)
 
 
 if __name__ == "__main__":
