@@ -1,5 +1,6 @@
 # coding:utf-8
-from flask import Flask, render_template, redirect
+import urllib
+from flask import Flask, render_template, abort
 import pandas as pd
 from model import model
 app = Flask(__name__)
@@ -33,7 +34,6 @@ def get_tweet_text(month, day, jyocd, racenum, prediction):
     )
     for mark, bamei in zip(["◎", "○", "▲"], l_bamei[:3]):
         text += "%s %s" % (mark, bamei)
-
     return text
 
 @app.route("/<raceid>")
@@ -62,10 +62,11 @@ def races(raceid):
             prediction = model.prediction(year, monthday, jyocd, racenum)
 
             if len(prediction.index) == 0:
-                return redirect("/", code=404)
+                abort(404)
 
 
             tweet_text = get_tweet_text(monthday[:2], monthday[2:4], jyocd, racenum, prediction)
+            tweet_text = urllib.parse.quote(tweet_text)
 
             return render_template('list.html',
                 prediction=prediction,
@@ -75,7 +76,12 @@ def races(raceid):
         except Exception as ex:
             app.logger.exception(ex)
 
-    return redirect("/", code=400)
+    abort(404)
+
+@app.errorhandler(404)
+def page_not_found(error):
+    msg = 'Error: {code} ページが見つかりません\n'.format(code=error.code)
+    return msg, error.code
 
 
 if __name__ == "__main__":
