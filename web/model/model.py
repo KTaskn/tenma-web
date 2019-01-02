@@ -43,6 +43,44 @@ def races():
         l_key.append("%s%s%s%s%s" % (year, monthday[:2], monthday[2:4], jyocd, racenum))
     return l_text, l_key
 
+def races_day(year, monthday):
+    dic_jyo = {
+        '01': '札幌',
+        '02': '函館',
+        '03': '福島',
+        '04': '新潟',
+        '05': '東京',
+        '06': '中山',
+        '07': '中京',
+        '08': '京都',
+        '09': '阪神',
+        '10': '小倉'
+    }
+    query = """
+    SELECT
+        COALESCE(t_predict.year::text, '') AS yaer,
+        LPAD(COALESCE(t_predict.monthday::text, ''), 4, '0') AS monthday,
+        LPAD(COALESCE(t_predict.jyocd::text, ''), 2, '0') AS jyocd,
+        LPAD(COALESCE(t_predict.racenum::text, ''), 2, '0') AS racenum
+    FROM t_predict
+    WHERE t_predict.year = '%s'
+    AND t_predict.monthday = '%s'
+    GROUP BY year, monthday, jyocd, racenum
+    ORDER BY year DESC, monthday DESC, jyocd, racenum;
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (year, monthday), conn)
+    l_text = []
+    l_key = []
+    for year, monthday, jyocd, racenum in df.values:
+        l_text.append("%s %sR" % (dic_jyo[jyocd], racenum))
+        l_key.append("%s%s%s%s%s" % (year, monthday[:2], monthday[2:4], jyocd, racenum))
+    return l_text, l_key
+
+
+
 def prediction(year, monthday, jyocd, racenum):
     query = """
     SELECT
@@ -71,3 +109,23 @@ def prediction(year, monthday, jyocd, racenum):
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
         return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum)), conn)
+
+def prediction_umatan(year, monthday, jyocd, racenum, num=10):
+    query = """
+    SELECT
+        COALESCE(t_name_1.bamei, '') AS bamei_1,
+        COALESCE(t_name_2.bamei, '') AS bamei_2,
+        COALESCE(t_umatan.odds::text, '')::float AS odds
+    FROM t_umatan
+    LEFT JOIN t_name AS t_name_1 ON t_umatan.kettonum_1chaku = t_name_1.kettonum
+    LEFT JOIN t_name AS t_name_2 ON t_umatan.kettonum_2chaku = t_name_2.kettonum
+    WHERE t_umatan.year = '%s'
+    AND t_umatan.monthday = '%s'
+    AND t_umatan.jyocd = '%s'
+    AND t_umatan.racenum = '%s'
+    ORDER BY odds LIMIT %d;
+    """
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum), int(num)), conn)
+
