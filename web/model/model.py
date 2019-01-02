@@ -72,7 +72,7 @@ def prediction(year, monthday, jyocd, racenum):
         conn.set_client_encoding('UTF8')
         return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum)), conn)
 
-def prediction_umatan(year, monthday, jyocd, racenum):
+def prediction_umatan(year, monthday, jyocd, racenum, num=10):
     query = """
     SELECT
         COALESCE(t_name_1.bamei, '') AS bamei_1,
@@ -85,9 +85,9 @@ def prediction_umatan(year, monthday, jyocd, racenum):
     AND t_umatan.monthday = '%s'
     AND t_umatan.jyocd = '%s'
     AND t_umatan.racenum = '%s'
-    ORDER BY odds;
+    ORDER BY odds LIMIT %d;
     """
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
-        return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum)), conn)
+        return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum), int(num)), conn)
 
