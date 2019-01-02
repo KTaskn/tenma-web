@@ -63,10 +63,23 @@
 
         <div class="row">
             <div class="col-sm">
+                <h4>本日の開催</h4>
+                <div class="list-group">
+                    {% for a_name, a_key in races_today %}
+                        <a href="{{ a_key }}" class="list-group-item">{{ a_name }}</a>
+                    {% else %}
+                        <a href="#" class="list-group-item disabled">本日の開催はありません</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+          
+        <div class="row">
+            <div class="col-sm">
                 <form name="select_form" class="select_form">
                     <div class="form-group">
                     <select class="custom-select" name="race" onChange="reload()">
-                            <option selected>レースを選択して予想を見る</option>
+                            <option selected>すべてのレース　選択して予想を見る</option>
                         {% for a_name, a_key in races %}
                             <option value="{{ a_key }}">{{ a_name }}</option>
                         {% endfor %}
