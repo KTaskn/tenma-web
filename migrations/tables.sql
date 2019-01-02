@@ -35,5 +35,16 @@ CREATE TABLE t_predict
 	racenum character varying(2) NOT NULL,
 	kettonum character varying(10) NOT NULL,
 	predict INTEGER NOT NULL,
-PRIMARY KEY (year, monthday, jyocd, racenum, kettonum)
+	PRIMARY KEY (year, monthday, jyocd, racenum, kettonum)
+);
+
+CREATE TABLE t_umatan(
+	year character varying(4) NOT NULL,
+	monthday character varying(4) NOT NULL,
+	jyocd character varying(2) NOT NULL,
+	racenum character varying(2) NOT NULL,
+	kettonum_1chaku character varying(10) NOT NULL,
+	kettonum_2chaku character varying(10) NOT NULL,
+	odds REAL NOT NULL,
+	PRIMARY KEY (year, monthday, jyocd, racenum, kettonum_1chaku, kettonum_2chaku)
 );
