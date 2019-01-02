@@ -1,5 +1,6 @@
 # coding:utf-8
 import urllib
+from datetime import datetime
 from flask import Flask, render_template, abort
 import pandas as pd
 from model import model
@@ -8,8 +9,15 @@ app = Flask(__name__)
 @app.route("/")
 def main():
     races_name, race_key = model.races()
+
+    today = datetime.today()
+    year = "%04d" % today.year
+    monthday = "%02d%02d" % (today.month, today.day)
+    races_name_today, race_key_today = model.races_day(year, monthday)
+
     return render_template('index.html',
-        races=zip(races_name, race_key))
+        races=zip(races_name, race_key),
+        races_today=zip(races_name_today, race_key_today))
 
 
 def get_tweet_text(month, day, jyocd, racenum, prediction):
