@@ -69,7 +69,9 @@ def races(raceid):
             app.logger.debug(racenum)
             prediction = model.prediction(year, monthday, jyocd, racenum)
             prediction_umatan = model.prediction_umatan(year, monthday, jyocd, racenum, num=8)
+            prediction_factor = model.prediction_factor(year, monthday, jyocd, racenum)
             umatan_flg = (len(prediction_umatan.index) > 0)
+            factor_flg = (len(prediction_factor.index) > 0)
 
             if len(prediction.index) == 0:
                 abort(404)
@@ -81,7 +83,9 @@ def races(raceid):
             return render_template('list.html',
                 prediction=prediction,
                 umatan_flg=umatan_flg,
+                factor_flg=factor_flg,
                 prediction_umatan=prediction_umatan,
+                prediction_factor=prediction_factor,
                 races=zip(races_name, race_key),
                 now=raceid,
                 tweet_text=tweet_text)

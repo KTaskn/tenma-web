@@ -48,3 +48,15 @@ CREATE TABLE t_umatan(
 	odds REAL NOT NULL,
 	PRIMARY KEY (year, monthday, jyocd, racenum, kettonum_1chaku, kettonum_2chaku)
 );
+
+CREATE TABLE t_factor
+(
+	year character varying(4) NOT NULL,
+	monthday character varying(4) NOT NULL,
+	jyocd character varying(2) NOT NULL,
+	racenum character varying(2) NOT NULL,
+	kettonum character varying(10) NOT NULL,
+	factor character varying(32) NOT NULL,
+	score REAL NOT NULL,
+	PRIMARY KEY (year, monthday, jyocd, racenum, kettonum, factor)
+);

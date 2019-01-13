@@ -129,3 +129,67 @@ def prediction_umatan(year, monthday, jyocd, racenum, num=10):
         conn.set_client_encoding('UTF8')
         return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum), int(num)), conn)
 
+
+def get_factor_text(score):
+    if score > 0.5:
+        return "◎%sがとてもよい"
+    elif score > 0.0:
+        return "○%sがよい"
+    elif score > -0.5:
+        return "▲%sが注意"
+    else:
+        return "×%sが不安要素"
+
+def prediction_factor(year, monthday, jyocd, racenum):
+    query = """
+    SELECT
+        COALESCE(t_name.bamei, '') AS bamei,
+        t_factor.factor,
+        t_factor.score
+    FROM t_factor
+    LEFT JOIN t_name AS t_name ON t_factor.kettonum = t_name.kettonum
+    LEFT JOIN t_predict ON t_factor.year = t_predict.year
+        AND t_factor.monthday = t_predict.monthday
+        AND t_factor.jyocd = t_predict.jyocd
+        AND t_factor.racenum = t_predict.racenum
+        AND t_factor.kettonum = t_predict.kettonum
+    WHERE t_factor.year = '%s'
+    AND t_factor.monthday = '%s'
+    AND t_factor.jyocd = '%s'
+    AND t_factor.racenum = '%s'
+    ORDER BY t_predict.predict ASC, t_factor.score DESC;
+    """
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum)), conn)
+
+    l_factor_detail = []
+    dic_factor = {
+        "kisyucode": "騎手",
+        "ketto3infohansyokunum1": "父馬",
+        "kakuteijyuni_bf1": "１走前",
+        "kakuteijyuni_bf2": "２走前",
+        "kakuteijyuni_bf3": "３走前",
+        "kakuteijyuni_bf4": "４走前",
+    }
+
+    l_idx = []
+    l_name = []
+    l_factor_detail = []
+    for bamei, grp in df.groupby('bamei'):
+        text = ""
+        for idx, row in grp[['score', 'factor']].iterrows():
+            if text:
+                text += "、"
+            text += "%s" % (
+                get_factor_text(row['score']) % dic_factor[row['factor']]
+            )
+        l_idx.append(idx)
+        l_name.append(bamei)
+        l_factor_detail.append(text)
+
+    return pd.DataFrame({
+        "idx": l_idx,
+        "bamei": l_name,
+        "factor_detail": l_factor_detail
+    }).sort_values('idx')
