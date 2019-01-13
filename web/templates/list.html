@@ -135,6 +135,30 @@
             </div>
         </div>
 
+        {% if factor_flg %}
+        <div class="row">
+            <div class="col-sm">
+                <h5>単勝予想</h5>
+                <table class="table table-hover table-predictor">
+                    <thead class="thead-dark">
+                        <tr>
+                        <th scope="col">馬名</th>
+                        <th scope="col">予想</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for idx, row in prediction_factor.iterrows() %}
+                        <tr>
+                            <td>{{ row['bamei'] }}</td>
+                            <td>{{ row['factor_detail'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
         {% if umatan_flg %}
         <div class="row">
             <div class="col-sm">
