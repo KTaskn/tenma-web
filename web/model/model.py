@@ -180,7 +180,7 @@ def prediction_factor(year, monthday, jyocd, racenum):
         text = ""
         for idx, row in grp[['score', 'factor']].iterrows():
             if text:
-                text += "、"
+                text += "<br />"
             text += "%s" % (
                 get_factor_text(row['score']) % dic_factor[row['factor']]
             )

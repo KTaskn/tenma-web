@@ -1,7 +1,7 @@
 # coding:utf-8
 import urllib
 from datetime import datetime
-from flask import Flask, render_template, abort
+from flask import Flask, render_template, abort, Markup
 import pandas as pd
 from model import model
 app = Flask(__name__)
@@ -70,6 +70,7 @@ def races(raceid):
             prediction = model.prediction(year, monthday, jyocd, racenum)
             prediction_umatan = model.prediction_umatan(year, monthday, jyocd, racenum, num=8)
             prediction_factor = model.prediction_factor(year, monthday, jyocd, racenum)
+            prediction_factor['factor_detail'] = prediction_factor['factor_detail'].map(Markup)
             umatan_flg = (len(prediction_umatan.index) > 0)
             factor_flg = (len(prediction_factor.index) > 0)
 
