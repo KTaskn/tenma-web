@@ -203,3 +203,22 @@ def prediction_factor(year, monthday, jyocd, racenum):
         "bamei": l_name,
         "factor_detail": l_factor_detail
     }).sort_values('idx')
+
+def get_racename(year, monthday, jyocd, racenum):
+    query = """
+    SELECT
+        COALESCE(t_racename.racename, '') AS racename
+    FROM t_racename
+    WHERE t_racename.year = '%s'
+    AND t_racename.monthday = '%s'
+    AND t_racename.jyocd = '%s'
+    AND t_racename.racenum = '%s' LIMIT 1;
+    """
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum)), conn)
+
+    if len(df.values):
+        return df['racename'].values[0]
+    else:
+        return ""

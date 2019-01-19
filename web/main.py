@@ -73,6 +73,7 @@ def races(raceid):
             prediction_factor['factor_detail'] = prediction_factor['factor_detail'].map(Markup)
             umatan_flg = (len(prediction_umatan.index) > 0)
             factor_flg = (len(prediction_factor.index) > 0)
+            racename = model.get_racename(year, monthday, jyocd, racenum)
 
             if len(prediction.index) == 0:
                 abort(404)
@@ -89,7 +90,8 @@ def races(raceid):
                 prediction_factor=prediction_factor,
                 races=zip(races_name, race_key),
                 now=raceid,
-                tweet_text=tweet_text)
+                tweet_text=tweet_text,
+                racename=racename)
         except Exception as ex:
             app.logger.exception(ex)
 
