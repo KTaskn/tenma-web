@@ -1,7 +1,7 @@
 # coding:utf-8
 import urllib
 from datetime import datetime
-from flask import Flask, render_template, abort, Markup
+from flask import Flask, render_template, abort, Markup, make_response
 import pandas as pd
 from model import model
 app = Flask(__name__)
@@ -94,6 +94,25 @@ def races(raceid):
             app.logger.exception(ex)
 
     abort(404)
+
+@app.route("/sitemap.xml", methods=['GET'])
+def sitemap():
+
+    races_name, race_key = model.races()
+
+    prediction = pd.DataFrame({
+        "umaban": [],
+        "bamei": [],
+        "predict": [],
+        "actual": [],
+    })
+
+    sitemap_xml = render_template('sitemap.xml',
+        races=race_key
+    )
+    response = make_response(sitemap_xml)
+    response.headers["Content-Type"] = "application/xml"
+    return response
 
 @app.errorhandler(404)
 def page_not_found(error):
