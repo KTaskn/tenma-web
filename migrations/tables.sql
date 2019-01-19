@@ -60,3 +60,13 @@ CREATE TABLE t_factor
 	score REAL NOT NULL,
 	PRIMARY KEY (year, monthday, jyocd, racenum, kettonum, factor)
 );
+
+CREATE TABLE t_racename
+(
+	year character varying(4) NOT NULL,
+	monthday character varying(4) NOT NULL,
+	jyocd character varying(2) NOT NULL,
+	racenum character varying(2) NOT NULL,
+	racename character varying(64),
+	PRIMARY KEY (year, monthday, jyocd, racenum)
+);
