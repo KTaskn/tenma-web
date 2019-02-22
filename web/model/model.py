@@ -35,6 +35,7 @@ def races():
         AND t_predict.monthday = t_racename.monthday
         AND t_predict.jyocd = t_racename.jyocd
         AND t_predict.racenum = t_racename.racenum
+    WHERE t_predict.year::text = '2019'
     GROUP BY t_predict.year, t_predict.monthday, t_predict.jyocd, t_predict.racenum, t_racename.racename
     ORDER BY t_predict.year DESC, t_predict.monthday DESC, t_predict.jyocd, t_predict.racenum::int;
     """
