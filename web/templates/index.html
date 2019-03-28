@@ -16,6 +16,10 @@
         'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
         })(window,document,'script','dataLayer','GTM-T8RD99X');
     </script>
+
+
+    <script src="/static/js/jquery-3.3.1.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
     <!-- End Google Tag Manager -->
 
     <title>TENMA</title>
@@ -85,19 +89,88 @@
             <div class="col-sm">
                 <form name="select_form" class="select_form">
                     <div class="form-group">
-                    <select class="custom-select" name="race" onChange="reload()">
-                            <option selected>すべてのレース　選択して予想を見る</option>
-                        {% for a_name, a_key in races %}
-                            <option value="{{ a_key }}">{{ a_name }}</option>
-                        {% endfor %}
+
+                    <select class="custom-select" id="daylist" name="daylist" style="margin:1em">
+                        <option selected>日付を選択　選択して予想を見る</option>
                     </select>
+
+                    <select class="custom-select" id="jyolist" name="jyolist" style="margin:1em">
+                        <option selected>競馬場を選択してください</option>
+                    </select>
+
+                    <select class="custom-select" id="racelist" name="racelist" style="margin:1em">
+                        <option selected>レース番号を選択してください</option>
+                    </select>
+
                     </div>
                 </form>
                 <script>
-                    var reload = function(){
-                        var race = select_form.race.value
-                        location.href = "./" + race
-                    }
+                    $.ajax({
+                        url:'./get_racedays',
+                        type:'GET'
+                    }).done( (data) => {
+                        console.log(data);
+                        $.each(data, function(index,val){
+                            var row = val.substr(0, 4) + "年" + val.substr(4, 2) + "月" + val.substr(6, 2) + "日"
+                            $('#daylist').append('<option value="' + val +'">' + row + '</option>');
+                        });
+                    }).fail( (data) => {
+                        console.log(data);
+                        $('#daylist').append('<option value="">データが取得できませんでした</option>');
+                    }).always( (data) => {
+
+                    });
+
+                    $('[name=daylist]').change(function() {
+                        var val = $('[name=daylist]').val();
+                        $.ajax({
+                            url:'./get_keibajyo',
+                            type:'GET',
+                            data: {
+                                "yearmonthday": val
+                            }
+                        }).done( (data) => {
+                            $('#jyolist').empty();
+                            $.each(data, function(index,val){
+                                $('#jyolist').append('<option value="' + index +'">' + val + '</option>');
+                            });
+                        }).fail( (data) => {
+                                $('#jyolist').append('<option value="">データが取得できませんでした</option>');
+                        }).always( (data) => {
+
+                        });
+                    })
+
+
+                    $('[name=jyolist]').change(function() {
+                        var yearmonthday = $('[name=daylist]').val();
+                        var jyocd = $('[name=jyolist]').val();
+                        $.ajax({
+                            url:'./get_race',
+                            type:'GET',
+                            data: {
+                                "yearmonthday": yearmonthday,
+                                "jyocd": jyocd
+                            }
+                        }).done( (data) => {
+                            console.log(data)
+                            $('#racelist').empty();
+                            $.each(data, function(index,val){
+                                $('#racelist').append('<option value="' + val +'">' + val + 'R</option>');
+                            });
+                        }).fail( (data) => {
+                                $('#racelist').append('<option value="">データが取得できませんでした</option>');
+                        }).always( (data) => {
+
+                        });
+                    })
+
+                    $('[name=racelist]').change(function() {
+                        var yearmonthday = $('[name=daylist]').val();
+                        var jyocd = $('[name=jyolist]').val();
+                        var racenum = $('[name=racelist]').val();
+                        location.href = "./" + yearmonthday + jyocd + racenum;
+                    })
                 </script>
             </div>
         </div>
@@ -114,7 +187,5 @@
             </div>
         </div>
     </div>
-    <script src="/static/js/jquery-3.3.1.min.js"></script>
-    <script src="/static/js/bootstrap.min.js"></script>
   </body>
 </html>
