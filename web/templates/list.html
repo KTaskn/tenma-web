@@ -163,32 +163,6 @@
         </div>
         {% endif %}
 
-        {% if umatan_flg %}
-        <div class="row">
-            <div class="col-sm">
-                <h5>馬単予想</h5>
-                <table class="table table-hover table-predictor">
-                    <thead class="thead-dark">
-                        <tr>
-                        <th scope="col">馬名（１着）</th>
-                        <th scope="col">馬名（２着）</th>
-                        <th scope="col">予想オッズ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for idx, row in prediction_umatan.iterrows() %}
-                        <tr>
-                            <th scope="row">{{ row['bamei_1'] }}</th>
-                            <td>{{ row['bamei_2'] }}</td>
-                            <td>{{ row['odds'] }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endif %}
-
         <div class="row">
             <div class="col-sm">
                 <p style="font-size:10px">当サービスは、利用者が当サービスの利用を通じて発生した不利益に対して一切の責任を負いません。</p>
