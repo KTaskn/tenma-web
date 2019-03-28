@@ -119,7 +119,8 @@
                         <tr>
                         <th scope="col">馬番</th>
                         <th scope="col">馬名</th>
-                        <th scope="col">予想</th>
+                        <th scope="col">予想順位</th>
+                        <th scope="col">予想オッズ</th>
                         <th scope="col">着順</th>
                         </tr>
                     </thead>
@@ -129,6 +130,7 @@
                             <th scope="row">{{ row['umaban'] }}</th>
                             <td>{{ row['bamei'] }}</td>
                             <td>{{ row['predict'] }}</td>
+                            <td>{{ row['odds'] }}</td>
                             <td>{{ row['actual'] }}</td>
                         </tr>
                         {% endfor %}

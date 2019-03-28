@@ -98,6 +98,7 @@ def prediction(year, monthday, jyocd, racenum):
         COALESCE(t_umaban.umaban, '') AS umaban,
         COALESCE(t_name.bamei, '') AS bamei,
         COALESCE(t_predict.predict::text, '')::int AS predict,
+        COALESCE(t_odds.odds::text, '') AS odds,
         COALESCE(t_actual.actual::text, '') AS actual
     FROM t_predict
     LEFT JOIN t_name ON t_predict.kettonum = t_name.kettonum
@@ -111,6 +112,11 @@ def prediction(year, monthday, jyocd, racenum):
         AND t_predict.jyocd = t_umaban.jyocd
         AND t_predict.racenum = t_umaban.racenum
         AND t_predict.kettonum = t_umaban.kettonum
+    LEFT JOIN t_odds ON t_predict.year = t_odds.year
+        AND t_predict.monthday = t_odds.monthday
+        AND t_predict.jyocd = t_odds.jyocd
+        AND t_predict.racenum = t_odds.racenum
+        AND t_predict.kettonum = t_odds.kettonum
     WHERE t_predict.year = '%s'
     AND t_predict.monthday = '%s'
     AND t_predict.jyocd = '%s'
