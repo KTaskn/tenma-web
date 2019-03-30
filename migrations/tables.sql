@@ -70,3 +70,14 @@ CREATE TABLE t_racename
 	racename character varying(64),
 	PRIMARY KEY (year, monthday, jyocd, racenum)
 );
+
+CREATE TABLE t_odds
+(
+	year character varying(4) NOT NULL,
+	monthday character varying(4) NOT NULL,
+	jyocd character varying(2) NOT NULL,
+	racenum character varying(2) NOT NULL,
+	kettonum character varying(10) NOT NULL,
+	odds character varying(64),
+	PRIMARY KEY (year, monthday, jyocd, racenum, kettonum)
+);
