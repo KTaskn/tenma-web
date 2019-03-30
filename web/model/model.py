@@ -90,7 +90,74 @@ def races_day(year, monthday):
         l_key.append("%s%s%s%s%s" % (year, monthday[:2], monthday[2:4], jyocd, racenum))
     return l_text, l_key
 
+def racedays():
+    query = """
+    SELECT
+        CONCAT(COALESCE(t_predict.year::text, ''), LPAD(COALESCE(t_predict.monthday::text, ''), 4, '0')) AS days
+    FROM t_predict
+    GROUP BY days
+    ORDER BY days DESC
+    LIMIT 12;
+    """
 
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query, conn)
+        
+    return df['days'].values.tolist()
+
+def keibajyo(year, monthday):
+    dic_jyo = {
+        '01': '札幌',
+        '02': '函館',
+        '03': '福島',
+        '04': '新潟',
+        '05': '東京',
+        '06': '中山',
+        '07': '中京',
+        '08': '京都',
+        '09': '阪神',
+        '10': '小倉'
+    }
+    query = """
+    SELECT
+        LPAD(COALESCE(t_predict.jyocd::text, ''), 2, '0') AS jyocd
+    FROM t_predict
+    WHERE year = '%s' AND monthday = '%s'
+    GROUP BY jyocd
+    ORDER BY jyocd DESC;
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (year, monthday), conn)
+
+    def func(x):
+        if x in dic_jyo.keys():
+            return dic_jyo[x]
+        else:
+            return ""
+    
+    return dict(zip(
+        df['jyocd'].values.tolist(),
+        df['jyocd'].map(func).values.tolist()
+    ))
+
+def racenum(year, monthday, jyocd):
+    query = """
+    SELECT
+        LPAD(COALESCE(t_predict.racenum::text, ''), 2, '0') AS racenum
+    FROM t_predict
+    WHERE year = '%s' AND monthday = '%s' AND jyocd = '%s'
+    GROUP BY racenum
+    ORDER BY racenum ASC;
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (year, monthday, jyocd), conn)
+    
+    return df['racenum'].values.tolist()
 
 def prediction(year, monthday, jyocd, racenum):
     query = """
@@ -98,6 +165,7 @@ def prediction(year, monthday, jyocd, racenum):
         COALESCE(t_umaban.umaban, '') AS umaban,
         COALESCE(t_name.bamei, '') AS bamei,
         COALESCE(t_predict.predict::text, '')::int AS predict,
+        COALESCE(t_odds.odds::text, '') AS odds,
         COALESCE(t_actual.actual::text, '') AS actual
     FROM t_predict
     LEFT JOIN t_name ON t_predict.kettonum = t_name.kettonum
@@ -111,6 +179,11 @@ def prediction(year, monthday, jyocd, racenum):
         AND t_predict.jyocd = t_umaban.jyocd
         AND t_predict.racenum = t_umaban.racenum
         AND t_predict.kettonum = t_umaban.kettonum
+    LEFT JOIN t_odds ON t_predict.year = t_odds.year
+        AND t_predict.monthday = t_odds.monthday
+        AND t_predict.jyocd = t_odds.jyocd
+        AND t_predict.racenum = t_odds.racenum
+        AND t_predict.kettonum = t_odds.kettonum
     WHERE t_predict.year = '%s'
     AND t_predict.monthday = '%s'
     AND t_predict.jyocd = '%s'

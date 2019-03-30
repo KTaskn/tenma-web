@@ -1,7 +1,7 @@
 # coding:utf-8
 import urllib
 from datetime import datetime
-from flask import Flask, render_template, abort, Markup, make_response
+from flask import Flask, render_template, abort, Markup, make_response, jsonify, request
 import pandas as pd
 from model import model
 app = Flask(__name__)
@@ -115,6 +115,39 @@ def sitemap():
     response = make_response(sitemap_xml)
     response.headers["Content-Type"] = "application/xml"
     return response
+
+@app.route("/get_racedays", methods=['GET'])
+def get_raceday():
+    racedays = model.racedays()
+    return jsonify(racedays)
+
+@app.route("/get_keibajyo", methods=['GET'])
+def get_keibajyo():
+    yearmonthday = request.args.get('yearmonthday')
+    if len(yearmonthday) == 8:
+        year = yearmonthday[:4]
+        monthday = yearmonthday[4:]
+        keibajyo = model.keibajyo(year, monthday)
+        return jsonify(keibajyo)
+    else:
+        return jsonify([])
+
+@app.route("/get_race", methods=['GET'])
+def get_race():
+    yearmonthday = request.args.get('yearmonthday')
+    jyocd = request.args.get('jyocd')
+    l = list(map(lambda i: "%02d" % (i), range(10)))
+
+    app.logger.info(l)
+    if len(yearmonthday) == 8 and jyocd in l:
+        year = yearmonthday[:4]
+        monthday = yearmonthday[4:]
+
+        racenum = model.racenum(year, monthday, int(jyocd))
+        return jsonify(racenum)
+    else:
+        return jsonify([])
+
 
 @app.errorhandler(404)
 def page_not_found(error):
