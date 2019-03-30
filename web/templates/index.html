@@ -86,24 +86,30 @@
         </div>
           
         <div class="row">
-            <div class="col-sm">
-                <form name="select_form" class="select_form">
-                    <div class="form-group">
+            <div class="col-sm form-inline">
+                <div class="form-group" style="width: 30%; margin-bottom:0em;">
+                    <form name="select_form" class="select_form" style="width:100%">
+                            <select class="custom-select" id="daylist" name="daylist"  style="width:100%">
+                                <option selected>日付</option>
+                            </select>
+                    </form>
+                </div>
 
-                    <select class="custom-select" id="daylist" name="daylist" style="margin:1em">
-                        <option selected>日付を選択　選択して予想を見る</option>
+                <div class="form-group" style="width: 30%; margin-bottom:0em;">
+                        <form name="select_form" class="select_form" style="width:100%">
+                            <select class="custom-select" id="jyolist" name="jyolist" style="width:100%">
+                                <option selected>競馬場</option>
+                            </select>
+                        </form>
+                </div>
+
+                <div class="form-group" style="width: 30%; margin-bottom:0em;">
+                    <form name="select_form" class="select_form" style="width:100%">
+                    <select class="custom-select" id="racelist" name="racelist" style="width:100%">
+                        <option selected>レース番号</option>
                     </select>
-
-                    <select class="custom-select" id="jyolist" name="jyolist" style="margin:1em">
-                        <option selected>競馬場を選択してください</option>
-                    </select>
-
-                    <select class="custom-select" id="racelist" name="racelist" style="margin:1em">
-                        <option selected>レース番号を選択してください</option>
-                    </select>
-
-                    </div>
-                </form>
+                    </form>
+                </div>
                 <script>
                     $.ajax({
                         url:'./get_racedays',
@@ -131,9 +137,33 @@
                             }
                         }).done( (data) => {
                             $('#jyolist').empty();
+                            $('#jyolist').append('<option selected>競馬場</option>');
                             $.each(data, function(index,val){
                                 $('#jyolist').append('<option value="' + index +'">' + val + '</option>');
                             });
+
+                            var yearmonthday = $('[name=daylist]').val();
+                            var jyocd = $('[name=jyolist]').val();
+                            $.ajax({
+                                url:'./get_race',
+                                type:'GET',
+                                data: {
+                                    "yearmonthday": yearmonthday,
+                                    "jyocd": jyocd
+                                }
+                            }).done( (data) => {
+                                console.log(data)
+                                $('#racelist').empty();
+                                $('#racelist').append('<option selected>レース番号</option>');
+                                $.each(data, function(index,val){
+                                    $('#racelist').append('<option value="' + val +'">' + val + 'R</option>');
+                                });
+                            }).fail( (data) => {
+                                $('#racelist').append('<option value="">データが取得できませんでした</option>');
+                            }).always( (data) => {
+
+                            });
+
                         }).fail( (data) => {
                                 $('#jyolist').append('<option value="">データが取得できませんでした</option>');
                         }).always( (data) => {
@@ -155,6 +185,7 @@
                         }).done( (data) => {
                             console.log(data)
                             $('#racelist').empty();
+                            $('#racelist').append('<option selected>レース番号</option>');
                             $.each(data, function(index,val){
                                 $('#racelist').append('<option value="' + val +'">' + val + 'R</option>');
                             });
