@@ -48,8 +48,27 @@ def races(raceid):
 
     races_name, race_key = model.races()
 
+    if len(raceid) == 12:
+        try:
+            date = raceid[:8]
+        except ValueError:
+            abort(404)
+            
+        try:
+            keibajyo_id = int(raceid[8:10])
+        except ValueError:
+            abort(404)
+
+        try:
+            racenum = int(raceid[10:12])
+        except ValueError:
+            abort(404)
+
+        df_prediction = model.prediction(date, keibajyo_id, racenum)
+
     return render_template('list.html',
         races=zip(races_name, race_key),
+        prediction=df_prediction
     )
 
     abort(404)

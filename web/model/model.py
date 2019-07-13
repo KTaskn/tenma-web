@@ -29,7 +29,7 @@ def races():
     l_key = []
     for racedate_id, racedate_disp, keibajyo_name, racenum in df.values:
         l_text.append("%s %sR %s" % (racedate_disp, racenum, keibajyo_name))
-        l_key.append("%s%s%s" % (racedate_id, racenum, keibajyo_name))
+        l_key.append("%s%s%s" % (racedate_id, keibajyo_name, racenum))
     return l_text, l_key
 
 def races_day(date):
@@ -111,40 +111,121 @@ def racenum(date, keibajyo_id):
     
     return df['racenum'].values.tolist()
 
-def prediction(year, monthday, jyocd, racenum):
+def prediction(date, keibajyo_id, racenum):
+    import numpy as np
     query = """
-    SELECT
-        COALESCE(t_umaban.umaban, '') AS umaban,
-        COALESCE(t_name.bamei, '') AS bamei,
-        COALESCE(t_predict.predict::text, '')::int AS predict,
-        COALESCE(t_odds.odds::text, '') AS odds,
-        COALESCE(t_actual.actual::text, '') AS actual
-    FROM t_predict
-    LEFT JOIN t_name ON t_predict.kettonum = t_name.kettonum
-    LEFT JOIN t_actual ON t_predict.year = t_actual.year
-        AND t_predict.monthday = t_actual.monthday
-        AND t_predict.jyocd = t_actual.jyocd
-        AND t_predict.racenum = t_actual.racenum
-        AND t_predict.kettonum = t_actual.kettonum
-    LEFT JOIN t_umaban ON t_predict.year = t_umaban.year
-        AND t_predict.monthday = t_umaban.monthday
-        AND t_predict.jyocd = t_umaban.jyocd
-        AND t_predict.racenum = t_umaban.racenum
-        AND t_predict.kettonum = t_umaban.kettonum
-    LEFT JOIN t_odds ON t_predict.year = t_odds.year
-        AND t_predict.monthday = t_odds.monthday
-        AND t_predict.jyocd = t_odds.jyocd
-        AND t_predict.racenum = t_odds.racenum
-        AND t_predict.kettonum = t_odds.kettonum
-    WHERE t_predict.year = '%s'
-    AND t_predict.monthday = '%s'
-    AND t_predict.jyocd = '%s'
-    AND t_predict.racenum = '%s'
-    ORDER BY predict;
+    select
+    t_race.course_id,
+    t_race.kyori,
+    t_horse.name,
+    t_tmp_horse.win / (select sum(1)::float from t_horserace where kakuteijyuni = 1) + 0.01 as pab_horse,
+    t_tmp_horse._count / (select sum(1)::float from t_horserace) + 0.01 as pa_horse,
+    case when t_tmp_course.win > 0 then t_tmp_sire.win / t_tmp_course.win::float + 0.01 else 0.01 end as pab_sire,
+    case when t_tmp_course._count > 0 then t_tmp_sire._count / t_tmp_course._count::float + 0.01 else 0.01 end as pa_sire,
+    case when t_tmp_course.win > 0 then t_tmp_broodmare.win / t_tmp_course.win::float  + 0.01 else 0.01 end as pab_broodmare,
+    case when t_tmp_course._count > 0 then t_tmp_broodmare._count / t_tmp_course._count::float + 0.01 else 0.01 end as pa_broodmare,
+    case when (select sum(1)::float from t_horserace where t_horserace.kakuteijyuni = 1 and t_horserace.racedate > DATE('{date}') - 30) > 0
+        then t_tmp_kisyu.win / (select sum(1)::float from t_horserace where t_horserace.kakuteijyuni = 1 and t_horserace.racedate > DATE('{date}') - 30) + 0.01
+        else 0.01
+    end as pab_kisyu,
+    case when (select sum(1)::float from t_horserace where t_horserace.racedate > DATE('{date}') - 30) > 0
+        then t_tmp_kisyu._count / (select sum(1)::float from t_horserace where t_horserace.racedate > DATE('{date}') - 30) + 0.01
+        else 0.01
+    end as pa_kisyu
+    from t_horserace
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    left join 
+    (
+    select
+    t_horserace.horse_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(t_horserace.kakuteijyuni) as _count
+    from t_horserace
+    group by t_horserace.horse_id
+    ) as t_tmp_horse on t_tmp_horse.horse_id = t_horse.id
+    left join 
+    (
+    select
+    t_race.course_id,
+    t_race.kyori,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(t_horserace.kakuteijyuni) as _count
+    from t_horserace
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    group by t_race.course_id, t_race.kyori
+    ) as t_tmp_course
+    on t_tmp_course.course_id = t_race.course_id
+    and t_tmp_course.kyori = t_race.kyori
+    left join 
+    (
+    select
+    t_race.course_id,
+    t_race.kyori,
+    t_horse.sire_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(t_horserace.kakuteijyuni) as _count
+    from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    group by t_race.course_id, t_race.kyori, sire_id
+    ) as t_tmp_sire
+    on t_tmp_sire.sire_id = t_horse.sire_id
+    and t_tmp_sire.course_id = t_race.course_id
+    and t_tmp_sire.kyori = t_race.kyori
+    left join
+    (
+    select
+    t_race.course_id,
+    t_race.kyori,
+    t_horse.broodmare_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(t_horserace.kakuteijyuni) as _count
+    from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    group by t_race.course_id, t_race.kyori, broodmare_id
+    ) as t_tmp_broodmare
+    on t_tmp_broodmare.broodmare_id = t_horse.broodmare_id
+    and t_tmp_broodmare.course_id = t_race.course_id
+    and t_tmp_broodmare.kyori = t_race.kyori
+    left join
+    (
+    select
+    t_horserace.kisyu_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(t_horserace.kakuteijyuni) as _count
+    from t_horserace
+    where t_horserace.racedate > DATE('{date}') - 30
+    group by t_horserace.kisyu_id
+    ) as t_tmp_kisyu on t_tmp_kisyu.kisyu_id = t_horserace.kisyu_id
+    where t_horserace.racedate = DATE('{date}')
+    and t_horserace.keibajyo_id = {keibajyo_id}
+    and t_horserace.racenum = {racenum};
     """
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
-        return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum)), conn)
+        df = pd.io.sql.read_sql_query(query.format(date=date, keibajyo_id=keibajyo_id, racenum=racenum), conn)
+
+    f_log = np.log
+    df['pa'] = f_log(1 / 18.0)
+    for col in ['horse', 'sire', 'broodmare', 'kisyu']:
+        pa_col = "pa_%s" % col
+        pab_col = "pab_%s" % col
+        df['pa'] = df[pab_col].map(f_log) - df[pa_col].map(f_log) + df['pa']
+
+    df['pa'] = df['pa'].map(np.exp) / df['pa'].map(np.exp).sum()
+    df['score'] = (1.0 / df['pa']).round(1)
+    df['predict'] = df['score'].rank()
+    return df[['name', 'predict', 'score']].sort_values('predict')
 
 def prediction_umatan(year, monthday, jyocd, racenum, num=10):
     query = """
