@@ -153,10 +153,11 @@ def get_keibajyo():
 def get_race():
     date = request.args.get('date')
     keibajyo_id = request.args.get('keibajyo_id')
-    if keibajyo_id in list(map(lambda x: "%d" % x, range(1, 13))):
-        racenum = model.racenum(date, keibajyo_id)
+    try :
+        racenum = model.racenum(date, int(keibajyo_id))
         return jsonify(racenum)
-    return jsonify([])
+    except ValueError:
+        return jsonify([])
 
 
 @app.route("/get_hist", methods=['GET'])
@@ -175,3 +176,4 @@ def page_not_found(error):
 if __name__ == "__main__":
     # Only for debugging while developing
     app.run()
+

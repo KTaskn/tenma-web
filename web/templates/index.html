@@ -117,7 +117,7 @@
                     }).done( (data) => {
                         console.log(data);
                         $.each(data, function(index,val){
-                            $('#daylist').append('<option value="' + val +'">' + val + '</option>');
+                            $('#daylist').append('<option value="' + index +'">' + val + '</option>');
                         });
                     }).fail( (data) => {
                         console.log(data);
@@ -198,10 +198,10 @@
                     })
 
                     $('[name=racelist]').change(function() {
-                        var yearmonthday = $('[name=daylist]').val();
-                        var jyocd = $('[name=jyolist]').val();
+                        var date = $('[name=daylist]').val();
+                        var keibajyo_id = $('[name=jyolist]').val();
                         var racenum = $('[name=racelist]').val();
-                        location.href = "./" + yearmonthday + jyocd + racenum;
+                        location.href = "./" + date + keibajyo_id + racenum;
                     })
                 </script>
             </div>

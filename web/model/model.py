@@ -13,7 +13,8 @@ dbparams = "host={} user={} port={} password={}".format(
 def races():
     query = """
     SELECT
-    TO_CHAR(t_race.racedate, 'yyyy-mm-dd') AS racedate,
+    TO_CHAR(t_race.racedate, 'yyyymmdd') AS racedate_id,
+    TO_CHAR(t_race.racedate, 'yyyy年mm月dd日') AS racedate_disp,
     t_keibajyo.name AS keibajyo_name,
     t_race.racenum
     FROM t_race
@@ -26,17 +27,19 @@ def races():
         df = pd.io.sql.read_sql_query(query, conn)
     l_text = []
     l_key = []
-    for racedate, keibajyo_name, racenum in df.values:
-        l_text.append("%s %sR %s" % (racedate, racenum, keibajyo_name))
-        l_key.append("%s%s%s" % (racedate, racenum, keibajyo_name))
+    for racedate_id, racedate_disp, keibajyo_name, racenum in df.values:
+        l_text.append("%s %sR %s" % (racedate_disp, racenum, keibajyo_name))
+        l_key.append("%s%s%s" % (racedate_id, racenum, keibajyo_name))
     return l_text, l_key
 
 def races_day(date):
     query = """
     SELECT
-    TO_CHAR(t_race.racedate, 'yyyy-mm-dd') AS racedate,
+    TO_CHAR(t_race.racedate, 'yyyymmdd') AS racedate_id,
+    TO_CHAR(t_race.racedate, 'yyyy年mm月dd日') AS racedate_disp,
+    LPAD(t_race.keibajyo_id::text, 2, '0') AS keibajyo_id,
     t_keibajyo.name AS keibajyo_name,
-    t_race.racenum
+    LPAD(t_race.racenum::text, 2, '0') AS racenum
     FROM t_race
     INNER JOIN t_keibajyo ON t_race.keibajyo_id = t_keibajyo.id
     WHERE t_race.racedate = DATE('%s')
@@ -48,35 +51,40 @@ def races_day(date):
         df = pd.io.sql.read_sql_query(query % (date), conn)
     l_text = []
     l_key = []
-    for racedate, keibajyo_name, racenum in df.values:
-        l_text.append("%s %s %sR" % (racedate, keibajyo_name, racenum))
-        l_key.append("%s%s%s" % (racedate, racenum, keibajyo_name))
+    for racedate_id, racedate_disp, keibajyo_id, keibajyo_name, racenum in df.values:
+        l_text.append("%s %s %sR" % (racedate_disp, keibajyo_name, racenum))
+        l_key.append("%s%s%s" % (racedate_id, racenum, keibajyo_id))
     return l_text, l_key
 
 def racedays():
     query = """
     SELECT
-    DISTINCT TO_CHAR(t_race.racedate, 'yyyy-mm-dd') AS racedate
+    DISTINCT 
+    TO_CHAR(t_race.racedate, 'yyyymmdd') AS racedate_id,
+    TO_CHAR(t_race.racedate, 'yyyy年mm月dd日') AS racedate_disp
     FROM t_race
-    ORDER BY racedate DESC LIMIT 12;
+    ORDER BY racedate_id DESC LIMIT 12;
     """
 
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
         df = pd.io.sql.read_sql_query(query, conn)
         
-    return df['racedate'].values.tolist()
+    return dict(zip(
+        df['racedate_id'].values.tolist(),
+        df['racedate_disp'].values.tolist()
+    ))
 
 def keibajyo(date):
     query = """
     SELECT
     DISTINCT
-    t_race.keibajyo_id AS keibajyo_id,
+    LPAD(t_race.keibajyo_id::text, 2, '0') AS keibajyo_id,
     t_keibajyo.name AS keibajyo_name
     FROM t_race
     INNER JOIN t_keibajyo ON t_race.keibajyo_id = t_keibajyo.id
     WHERE t_race.racedate = DATE('%s')
-    ORDER BY t_race.keibajyo_id ASC;
+    ORDER BY keibajyo_id ASC;
     """
 
     with psycopg2.connect(dbparams) as conn:
@@ -91,10 +99,10 @@ def keibajyo(date):
 def racenum(date, keibajyo_id):
     query = """
     SELECT
-    DISTINCT t_race.racenum
+    DISTINCT LPAD(t_race.racenum::text, 2, '0') AS racenum
     FROM t_race
     WHERE t_race.racedate = DATE('%s') AND t_race.keibajyo_id = %s
-    ORDER BY t_race.racenum ASC;
+    ORDER BY racenum ASC;
     """
 
     with psycopg2.connect(dbparams) as conn:
