@@ -48,74 +48,9 @@ def races(raceid):
 
     races_name, race_key = model.races()
 
-    prediction = pd.DataFrame({
-        "umaban": [],
-        "bamei": [],
-        "predict": [],
-        "actual": [],
-    })
-    tweet_text = "TENMA"
-
-    import numpy as np
-    import json
-    bars_0 = {
-        "type": 'horizontalBar',
-        "data": {
-            "labels": list(range(1, 19)),
-            "datasets": [{
-                "data": np.random.randint(1, 20, 18).tolist(),
-                "borderWidth": 1
-            }]
-        },
-        "options": {
-            "scales": {
-                "yAxes": [{
-                    "ticks": {
-                        "beginAtZero": True
-                    }
-                }]
-            }
-        }
-    }
-
-    if len(raceid) == 12:
-        try:
-            year = raceid[:4]
-            monthday = raceid[4:8]
-            jyocd = raceid[8:10]
-            racenum = raceid[10:12]
-            app.logger.debug(year)
-            app.logger.debug(monthday)
-            app.logger.debug(jyocd)
-            app.logger.debug(racenum)
-            prediction = model.prediction(year, monthday, jyocd, racenum)
-            prediction_umatan = model.prediction_umatan(year, monthday, jyocd, racenum, num=8)
-            prediction_factor = model.prediction_factor(year, monthday, jyocd, racenum)
-            prediction_factor['factor_detail'] = prediction_factor['factor_detail'].map(Markup)
-            umatan_flg = (len(prediction_umatan.index) > 0)
-            factor_flg = (len(prediction_factor.index) > 0)
-            racename = model.get_racename(year, monthday, jyocd, racenum)
-
-            if len(prediction.index) == 0:
-                abort(404)
-
-
-            tweet_text = get_tweet_text(monthday[:2], monthday[2:4], jyocd, racenum, prediction)
-            tweet_text = urllib.parse.quote(tweet_text)
-
-            return render_template('list.html',
-                prediction=prediction,
-                umatan_flg=umatan_flg,
-                factor_flg=factor_flg,
-                prediction_umatan=prediction_umatan,
-                prediction_factor=prediction_factor,
-                races=zip(races_name, race_key),
-                now=raceid,
-                tweet_text=tweet_text,
-                racename=racename
-            )
-        except Exception as ex:
-            app.logger.exception(ex)
+    return render_template('list.html',
+        races=zip(races_name, race_key),
+    )
 
     abort(404)
 
