@@ -1,8 +1,9 @@
 # coding:utf-8
 import urllib
-from datetime import datetime
+from datetime import date
 from flask import Flask, render_template, abort, Markup, make_response, jsonify, request
 import pandas as pd
+import numpy as np
 from model import model
 app = Flask(__name__)
 
@@ -10,10 +11,8 @@ app = Flask(__name__)
 def main():
     races_name, race_key = model.races()
 
-    today = datetime.today()
-    year = "%04d" % today.year
-    monthday = "%02d%02d" % (today.month, today.day)
-    races_name_today, race_key_today = model.races_day(year, monthday)
+    today = date.today()
+    races_name_today, race_key_today = model.races_day(today)
 
     return render_template('index.html',
         races=zip(races_name, race_key),
@@ -57,6 +56,28 @@ def races(raceid):
     })
     tweet_text = "TENMA"
 
+    import numpy as np
+    import json
+    bars_0 = {
+        "type": 'horizontalBar',
+        "data": {
+            "labels": list(range(1, 19)),
+            "datasets": [{
+                "data": np.random.randint(1, 20, 18).tolist(),
+                "borderWidth": 1
+            }]
+        },
+        "options": {
+            "scales": {
+                "yAxes": [{
+                    "ticks": {
+                        "beginAtZero": True
+                    }
+                }]
+            }
+        }
+    }
+
     if len(raceid) == 12:
         try:
             year = raceid[:4]
@@ -91,7 +112,8 @@ def races(raceid):
                 races=zip(races_name, race_key),
                 now=raceid,
                 tweet_text=tweet_text,
-                racename=racename)
+                racename=racename
+            )
         except Exception as ex:
             app.logger.exception(ex)
 
@@ -123,30 +145,25 @@ def get_raceday():
 
 @app.route("/get_keibajyo", methods=['GET'])
 def get_keibajyo():
-    yearmonthday = request.args.get('yearmonthday')
-    if len(yearmonthday) == 8:
-        year = yearmonthday[:4]
-        monthday = yearmonthday[4:]
-        keibajyo = model.keibajyo(year, monthday)
-        return jsonify(keibajyo)
-    else:
-        return jsonify([])
+    date = request.args.get('date')
+    keibajyo = model.keibajyo(date)
+    return jsonify(keibajyo)
 
 @app.route("/get_race", methods=['GET'])
 def get_race():
-    yearmonthday = request.args.get('yearmonthday')
-    jyocd = request.args.get('jyocd')
-    l = list(map(lambda i: "%02d" % (i), range(10)))
-
-    app.logger.info(l)
-    if len(yearmonthday) == 8 and jyocd in l:
-        year = yearmonthday[:4]
-        monthday = yearmonthday[4:]
-
-        racenum = model.racenum(year, monthday, int(jyocd))
+    date = request.args.get('date')
+    keibajyo_id = request.args.get('keibajyo_id')
+    if keibajyo_id in list(map(lambda x: "%d" % x, range(1, 13))):
+        racenum = model.racenum(date, keibajyo_id)
         return jsonify(racenum)
-    else:
-        return jsonify([])
+    return jsonify([])
+
+
+@app.route("/get_hist", methods=['GET'])
+def get_titiuma():
+    return jsonify({
+        "hist": np.random.randint(5, 20, 18).tolist()
+    })
 
 
 @app.errorhandler(404)

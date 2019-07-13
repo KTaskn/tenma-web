@@ -3,11 +3,15 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Cache-Control" content="no-cache">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="TENMA AI 競馬予想">
     <meta name="author" content="ktaskn">
     <link rel="shortcut icon" href="/static/images/favicon.png">
+    
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
     <script src="/static/js/jquery-3.3.1.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
     <!-- Google Tag Manager -->
@@ -273,58 +277,48 @@
                 }(document, "script", "twitter-wjs"));
             </script>
         </div>
-    
-        <div class="row">
-            <div class="col-sm">
-                <h5>単勝予想</h5>
-                <table class="table table-hover table-predictor">
-                    <thead class="thead-dark">
-                        <tr>
-                        <th scope="col">馬番</th>
-                        <th scope="col">馬名</th>
-                        <th scope="col">予想順位</th>
-                        <th scope="col">予想オッズ</th>
-                        <th scope="col">着順</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for idx, row in prediction.iterrows() %}
-                        <tr>
-                            <th scope="row">{{ row['umaban'] }}</th>
-                            <td>{{ row['bamei'] }}</td>
-                            <td>{{ row['predict'] }}</td>
-                            <td>{{ row['odds'] }}</td>
-                            <td>{{ row['actual'] }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        
+        <canvas class="histchart" id="chartUma"></canvas>
+        <canvas class="histchart" id="chartTitiuma"></canvas>
+        <canvas class="histchart" id="chartHahauma"></canvas>
+        <canvas class="histchart" id="chartKisyu"></canvas>
 
-        {% if factor_flg %}
-        <div class="row">
-            <div class="col-sm">
-                <h5>予想ファクター</h5>
-                <table class="table table-hover table-predictor">
-                    <thead class="thead-dark">
-                        <tr>
-                        <th scope="col">馬名</th>
-                        <th scope="col">予想</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for idx, row in prediction_factor.iterrows() %}
-                        <tr>
-                            <td>{{ row['bamei'] }}</td>
-                            <td>{{ row['factor_detail'] }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endif %}
+
+        <script>        
+        var plot_hist = function(url, canvas){
+            $.ajax({
+                url: url,
+                type:'GET'
+            }).done( (data) => {
+                var ctx = document.getElementById(canvas).getContext('2d');
+                var myChart = new Chart(ctx,  {
+                    type: 'horizontalBar',
+                    data: {
+                        labels: Array.from({length: 18}, (v, k) => k).map(x => x + 1),
+                        datasets: [{
+                            data: data['hist'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true
+                                }
+                            }]
+                        }
+                    }
+                    });
+                }
+            );
+        }
+
+        plot_hist('./get_hist', 'chartUma');
+        plot_hist('./get_hist', 'chartTitiuma');
+        plot_hist('./get_hist', 'chartHahauma');
+        plot_hist('./get_hist', 'chartKisyu');
+        </script>
 
         <div class="row">
             <div class="col-sm">

@@ -117,8 +117,7 @@
                     }).done( (data) => {
                         console.log(data);
                         $.each(data, function(index,val){
-                            var row = val.substr(0, 4) + "年" + val.substr(4, 2) + "月" + val.substr(6, 2) + "日"
-                            $('#daylist').append('<option value="' + val +'">' + row + '</option>');
+                            $('#daylist').append('<option value="' + val +'">' + val + '</option>');
                         });
                     }).fail( (data) => {
                         console.log(data);
@@ -133,7 +132,7 @@
                             url:'./get_keibajyo',
                             type:'GET',
                             data: {
-                                "yearmonthday": val
+                                "date": val
                             }
                         }).done( (data) => {
                             $('#jyolist').empty();
@@ -142,14 +141,15 @@
                                 $('#jyolist').append('<option value="' + index +'">' + val + '</option>');
                             });
 
-                            var yearmonthday = $('[name=daylist]').val();
-                            var jyocd = $('[name=jyolist]').val();
+                            var date = $('[name=daylist]').val();
+                            var keibajyo_id = $('[name=jyolist]').val();
+                            console.log(keibajyo_id)
                             $.ajax({
                                 url:'./get_race',
                                 type:'GET',
                                 data: {
-                                    "yearmonthday": yearmonthday,
-                                    "jyocd": jyocd
+                                    "date": date,
+                                    "keibajyo_id": keibajyo_id
                                 }
                             }).done( (data) => {
                                 console.log(data)
@@ -173,14 +173,15 @@
 
 
                     $('[name=jyolist]').change(function() {
-                        var yearmonthday = $('[name=daylist]').val();
-                        var jyocd = $('[name=jyolist]').val();
+                        var date = $('[name=daylist]').val();
+                        var keibajyo_id = $('[name=jyolist]').val();
+                        console.log(keibajyo_id)
                         $.ajax({
                             url:'./get_race',
                             type:'GET',
                             data: {
-                                "yearmonthday": yearmonthday,
-                                "jyocd": jyocd
+                                "date": date,
+                                "keibajyo_id": keibajyo_id
                             }
                         }).done( (data) => {
                             console.log(data)
