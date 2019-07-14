@@ -17,8 +17,9 @@ def main():
 
 def get_tweet_text(prediction_table, date, keibajyo, racenum):
     l_bamei = prediction_table['name'].values
-    date = "%s年%s月%s日" % (date[:4], date[4:6], date[6:8])
-    text = "%s %s %02dRレース予想\n" % (date, keibajyo, racenum)
+    date_str = str(date)
+    date = "%s年%s月%s日" % (date_str[:4], date_str[4:6], date_str[6:8])
+    text = "%s %s %02dRレース予想\n" % (date_str, keibajyo, racenum)
     for mark, bamei in zip(["◎", "○", "▲"], l_bamei[:3]):
         text += "%s %s" % (mark, bamei)
     return text
@@ -27,7 +28,7 @@ def get_tweet_text(prediction_table, date, keibajyo, racenum):
 def races(raceid):
     if len(raceid) == 12:
         try:
-            date = raceid[:8]
+            date = int(raceid[:8])
         except ValueError:
             abort(404)
             
@@ -43,6 +44,10 @@ def races(raceid):
 
         df_prediction = model.prediction(date, keibajyo_id, racenum)
 
+
+        if len(df_prediction.index) < 1:
+            abort(404)
+
         prediction_table = ''
         template = '<tr class="horse" style="cursor: pointer;" value="{horse_id}" horsename="{name}"><td>{name}</td><td>{predict}</td><td>{score}</td></tr>'
         for idx, row in df_prediction.iterrows():
@@ -52,8 +57,11 @@ def races(raceid):
                 predict=row['predict'],
                 score=row['score'],
             )
-
+            
         tweet_text = get_tweet_text(df_prediction, date, df_prediction.ix[0, 'keibajyo'], racenum)
+        
+    else:
+        abort(404)
 
     return render_template('list.html',
         prediction_table=prediction_table,
@@ -80,7 +88,11 @@ def get_raceday():
 @app.route("/get_keibajyo", methods=['GET'])
 def get_keibajyo():
     date = request.args.get('date')
-    keibajyo = model.keibajyo(date)
+
+    try:
+        keibajyo = model.keibajyo(int(date))
+    except ValueError:
+        keibajyo = []
     return jsonify(keibajyo)
 
 @app.route("/get_race", methods=['GET'])
@@ -88,7 +100,7 @@ def get_race():
     date = request.args.get('date')
     keibajyo_id = request.args.get('keibajyo_id')
     try :
-        racenum = model.racenum(date, int(keibajyo_id))
+        racenum = model.racenum(int(date), int(keibajyo_id))
         return jsonify(racenum)
     except ValueError:
         return jsonify([])
@@ -101,7 +113,14 @@ def get_titiuma():
     racenum = request.args.get('racenum')
     horse_id = request.args.get('horse_id')
     
-    return jsonify(model.get_hist(date, keibajyo_id, racenum, horse_id))
+    try:
+        return jsonify(
+            model.get_hist(
+                int(date), int(keibajyo_id), int(racenum), int(horse_id)
+            )
+        )
+    except ValueError:
+        return jsonify([])
 
 
 @app.errorhandler(404)
@@ -113,10 +132,3 @@ def page_not_found(error):
 if __name__ == "__main__":
     # Only for debugging while developing
     app.run()
-
-
-
-
-
-
-

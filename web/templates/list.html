@@ -94,9 +94,71 @@
                     type:'GET'
                 }).done( (data) => {
                     console.log(data);
+                    var pathname = $(location).attr('pathname');
                     $.each(data, function(index,val){
-                        $('#daylist').append('<option value="' + val[0] +'">' + val[1] + '</option>');
+                        if(val[0].substr(0, 8) == pathname.substr(1, 8)){
+                            $('#daylist').append('<option value="' + val[0] +'" selected>' + val[1] + '</option>');
+                        }
+                        else{
+                            $('#daylist').append('<option value="' + val[0] +'">' + val[1] + '</option>');
+                        }
                     });
+
+
+                    var val = $('[name=daylist]').val();
+                    $.ajax({
+                        url:'./get_keibajyo',
+                        type:'GET',
+                        data: {
+                            "date": val
+                        }
+                    }).done( (data) => {
+                        $('#jyolist').empty();
+                        $('#jyolist').append('<option selected>競馬場</option>');
+                        $.each(data, function(index,val){
+                            var path = location.pathname;
+                            if(index == path.substr(9, 2)){
+                                $('#jyolist').append('<option value="' + index +'" selected>' + val + '</option>');
+                            }
+                            else{
+                                $('#jyolist').append('<option value="' + index +'">' + val + '</option>');
+                            }
+                        });
+
+                        var yearmonthday = $('[name=daylist]').val();
+                        var jyocd = $('[name=jyolist]').val();
+                        $.ajax({
+                            url:'./get_race',
+                            type:'GET',
+                            data: {
+                                "date": yearmonthday,
+                                "keibajyo_id": jyocd
+                            }
+                        }).done( (data) => {
+                            console.log(data)
+                            $('#racelist').empty();
+                            $('#racelist').append('<option selected>レース番号</option>');
+                            
+                            var path = location.pathname;
+                            $.each(data, function(index,val){
+                                if(val == path.substr(11, 2)){
+                                    $('#racelist').append('<option value="' + val +'" selected>' + val + 'R</option>');
+                                }
+                                else{
+                                    $('#racelist').append('<option value="' + val +'">' + val + 'R</option>');
+                                }
+                            });
+                        }).fail( (data) => {
+                            $('#racelist').append('<option value="">データが取得できませんでした</option>');
+                        }).always( (data) => {
+
+                        });
+                    }).fail( (data) => {
+                            $('#jyolist').append('<option value="">データが取得できませんでした</option>');
+                    }).always( (data) => {
+
+                    });
+
                 }).fail( (data) => {
                     console.log(data);
                     $('#daylist').append('<option value="">データが取得できませんでした</option>');
