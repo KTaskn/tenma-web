@@ -210,7 +210,7 @@
         </div>
 
         <div class="row">
-            <div class="col-sm">
+            <div class="col-md-6">
                 <h5>単勝予想</h5>
                 <table class="table table-hover table-predictor">
                     <thead class="thead-dark">
@@ -225,19 +225,31 @@
                     </tbody>
                 </table>
             </div>
+            <div class="col-md-6">
+                    <div class="row">
+                        <canvas class="histchart" id="chartUma"></canvas>
+                    </div>
+                    <div class="row">
+                        <canvas class="histchart" id="chartSire"></canvas>
+                    </div>
+                    <div class="row">
+                        <canvas class="histchart" id="chartBroodmare"></canvas>
+                    </div>
+                    <div class="row">
+                        <canvas class="histchart" id="chartKisyu"></canvas>
+                    </div>
+            </div>
         </div>
         
-        <canvas class="histchart" id="chartUma"></canvas>
-        <canvas class="histchart" id="chartSire"></canvas>
-        <canvas class="histchart" id="chartBroodmare"></canvas>
-        <canvas class="histchart" id="chartKisyu"></canvas>
 
 
         <script>
         var myChart = [
         ];
-        var plot_hist = function(canvas, data){
+
+        var plot_hist = function(canvas, data, label){
             var ctx = document.getElementById(canvas).getContext('2d');
+            ctx.canvas.height = 230;
             if(myChart[canvas]){
                 myChart[canvas].destroy();
             }
@@ -246,6 +258,7 @@
                 data: {
                     labels: Array.from({length: 18}, (v, k) => k).map(x => x + 1),
                     datasets: [{
+                        label: label,
                         data: data,
                         borderWidth: 1
                     }]
@@ -257,7 +270,9 @@
                                 beginAtZero: true
                             }
                         }]
-                    }
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false
                 }
             });
         }
@@ -273,10 +288,10 @@
                     "horse_id": horse_id
                 }
             }).done( (data) => {
-                plot_hist('chartUma', data['hist_horse']);
-                plot_hist('chartSire', data['hist_sire']);
-                plot_hist('chartBroodmare', data['hist_broodmare']);
-                plot_hist('chartKisyu', data['hist_kisyu']);
+                plot_hist('chartUma', data['hist_horse'], '過去成績');
+                plot_hist('chartSire', data['hist_sire'], '父馬コース成績');
+                plot_hist('chartBroodmare', data['hist_broodmare'], '母馬過去成績');
+                plot_hist('chartKisyu', data['hist_kisyu'], '騎手直近成績');
             });
         }
 
@@ -288,6 +303,12 @@
             var horse_id = $(this).attr("value");
             get_hist(date, keibajyo_id, racenum, horse_id)
         });
+
+
+        plot_hist('chartUma', Array.from({length: 18}, (v, k) => k).map(x => x * 0), '過去成績');
+        plot_hist('chartSire', Array.from({length: 18}, (v, k) => k).map(x => x * 0), '父馬コース成績');
+        plot_hist('chartBroodmare', Array.from({length: 18}, (v, k) => k).map(x => x * 0), '母馬過去成績');
+        plot_hist('chartKisyu', Array.from({length: 18}, (v, k) => k).map(x => x * 0), '騎手直近成績');
 
         </script>
 
