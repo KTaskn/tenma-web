@@ -221,58 +221,74 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for idx, row in prediction.iterrows() %}
-                        <tr>
-                            <td>{{ row['name'] }}</td>
-                            <td>{{ row['predict'] }}</td>
-                            <td>{{ row['score'] }}</td>
-                        </tr>
-                        {% endfor %}
+                        {{ prediction_table | safe }}
                     </tbody>
                 </table>
             </div>
         </div>
         
         <canvas class="histchart" id="chartUma"></canvas>
-        <canvas class="histchart" id="chartTitiuma"></canvas>
-        <canvas class="histchart" id="chartHahauma"></canvas>
+        <canvas class="histchart" id="chartSire"></canvas>
+        <canvas class="histchart" id="chartBroodmare"></canvas>
         <canvas class="histchart" id="chartKisyu"></canvas>
 
 
-        <script>        
-        var plot_hist = function(url, canvas){
-            $.ajax({
-                url: url,
-                type:'GET'
-            }).done( (data) => {
-                var ctx = document.getElementById(canvas).getContext('2d');
-                var myChart = new Chart(ctx,  {
-                    type: 'horizontalBar',
-                    data: {
-                        labels: Array.from({length: 18}, (v, k) => k).map(x => x + 1),
-                        datasets: [{
-                            data: data['hist'],
-                            borderWidth: 1
+        <script>
+        var myChart = [
+        ];
+        var plot_hist = function(canvas, data){
+            var ctx = document.getElementById(canvas).getContext('2d');
+            if(myChart[canvas]){
+                myChart[canvas].destroy();
+            }
+            myChart[canvas] = new Chart(ctx,  {
+                type: 'horizontalBar',
+                data: {
+                    labels: Array.from({length: 18}, (v, k) => k).map(x => x + 1),
+                    datasets: [{
+                        data: data,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true
+                            }
                         }]
-                    },
-                    options: {
-                        scales: {
-                            yAxes: [{
-                                ticks: {
-                                    beginAtZero: true
-                                }
-                            }]
-                        }
                     }
-                    });
                 }
-            );
+            });
         }
 
-        plot_hist('./get_hist', 'chartUma');
-        plot_hist('./get_hist', 'chartTitiuma');
-        plot_hist('./get_hist', 'chartHahauma');
-        plot_hist('./get_hist', 'chartKisyu');
+        var get_hist = function(date, keibajyo_id, racenum, horse_id){
+            $.ajax({
+                url: './get_hist',
+                type:'GET',
+                data: {
+                    "date": date,
+                    "keibajyo_id": keibajyo_id,
+                    "racenum": racenum,
+                    "horse_id": horse_id
+                }
+            }).done( (data) => {
+                plot_hist('chartUma', data['hist_horse']);
+                plot_hist('chartSire', data['hist_sire']);
+                plot_hist('chartBroodmare', data['hist_broodmare']);
+                plot_hist('chartKisyu', data['hist_kisyu']);
+            });
+        }
+
+        $(document).on('click', ".horse", function() {
+            var pathname = $(location).attr('pathname');
+            var date = pathname.slice(1, 9);
+            var keibajyo_id = pathname.slice(9, 11);
+            var racenum = pathname.slice(11, 13);
+            var horse_id = $(this).attr("value");
+            get_hist(date, keibajyo_id, racenum, horse_id)
+        });
+
         </script>
 
         <div class="row">

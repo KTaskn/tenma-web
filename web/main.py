@@ -66,12 +66,20 @@ def races(raceid):
 
         df_prediction = model.prediction(date, keibajyo_id, racenum)
 
+        prediction_table = ''
+        template = '<tr class="horse" value="{horse_id}"><td>{name}</td><td>{predict}</td><td>{score}</td></tr>'
+        for idx, row in df_prediction.iterrows():
+            prediction_table += template.format(
+                horse_id=row['horse_id'],
+                name=row['name'],
+                predict=row['predict'],
+                score=row['score'],
+            )
+
     return render_template('list.html',
         races=zip(races_name, race_key),
-        prediction=df_prediction
+        prediction_table=prediction_table
     )
-
-    abort(404)
 
 @app.route("/sitemap.xml", methods=['GET'])
 def sitemap():
@@ -116,9 +124,12 @@ def get_race():
 
 @app.route("/get_hist", methods=['GET'])
 def get_titiuma():
-    return jsonify({
-        "hist": np.random.randint(5, 20, 18).tolist()
-    })
+    date = request.args.get('date')
+    keibajyo_id = request.args.get('keibajyo_id')
+    racenum = request.args.get('racenum')
+    horse_id = request.args.get('horse_id')
+    
+    return jsonify(model.get_hist(date, keibajyo_id, racenum, horse_id))
 
 
 @app.errorhandler(404)

@@ -53,7 +53,7 @@ def races_day(date):
     l_key = []
     for racedate_id, racedate_disp, keibajyo_id, keibajyo_name, racenum in df.values:
         l_text.append("%s %s %sR" % (racedate_disp, keibajyo_name, racenum))
-        l_key.append("%s%s%s" % (racedate_id, racenum, keibajyo_id))
+        l_key.append("%s%s%s" % (racedate_id, keibajyo_id, racenum))
     return l_text, l_key
 
 def racedays():
@@ -113,24 +113,26 @@ def racenum(date, keibajyo_id):
 
 def prediction(date, keibajyo_id, racenum):
     import numpy as np
+    BIAS = 0.001
     query = """
     select
     t_race.course_id,
     t_race.kyori,
+    t_horse.id AS horse_id,
     t_horse.name,
-    t_tmp_horse.win / (select sum(1)::float from t_horserace where kakuteijyuni = 1) + 0.01 as pab_horse,
-    t_tmp_horse._count / (select sum(1)::float from t_horserace) + 0.01 as pa_horse,
-    case when t_tmp_course.win > 0 then t_tmp_sire.win / t_tmp_course.win::float + 0.01 else 0.01 end as pab_sire,
-    case when t_tmp_course._count > 0 then t_tmp_sire._count / t_tmp_course._count::float + 0.01 else 0.01 end as pa_sire,
-    case when t_tmp_course.win > 0 then t_tmp_broodmare.win / t_tmp_course.win::float  + 0.01 else 0.01 end as pab_broodmare,
-    case when t_tmp_course._count > 0 then t_tmp_broodmare._count / t_tmp_course._count::float + 0.01 else 0.01 end as pa_broodmare,
+    t_tmp_horse.win / (select sum(1)::float from t_horserace where kakuteijyuni = 1) + {bias} as pab_horse,
+    t_tmp_horse._count / (select sum(1)::float from t_horserace) + {bias} as pa_horse,
+    case when t_tmp_course.win > 0 then t_tmp_sire.win / t_tmp_course.win::float + {bias} else {bias} end as pab_sire,
+    case when t_tmp_course._count > 0 then t_tmp_sire._count / t_tmp_course._count::float + {bias} else {bias} end as pa_sire,
+    case when t_tmp_course.win > 0 then t_tmp_broodmare.win / t_tmp_course.win::float  + {bias} else {bias} end as pab_broodmare,
+    case when t_tmp_course._count > 0 then t_tmp_broodmare._count / t_tmp_course._count::float + {bias} else {bias} end as pa_broodmare,
     case when (select sum(1)::float from t_horserace where t_horserace.kakuteijyuni = 1 and t_horserace.racedate > DATE('{date}') - 30) > 0
-        then t_tmp_kisyu.win / (select sum(1)::float from t_horserace where t_horserace.kakuteijyuni = 1 and t_horserace.racedate > DATE('{date}') - 30) + 0.01
-        else 0.01
+        then t_tmp_kisyu.win / (select sum(1)::float from t_horserace where t_horserace.kakuteijyuni = 1 and t_horserace.racedate > DATE('{date}') - 30) + {bias}
+        else {bias}
     end as pab_kisyu,
     case when (select sum(1)::float from t_horserace where t_horserace.racedate > DATE('{date}') - 30) > 0
-        then t_tmp_kisyu._count / (select sum(1)::float from t_horserace where t_horserace.racedate > DATE('{date}') - 30) + 0.01
-        else 0.01
+        then t_tmp_kisyu._count / (select sum(1)::float from t_horserace where t_horserace.racedate > DATE('{date}') - 30) + {bias}
+        else {bias}
     end as pa_kisyu
     from t_horserace
     inner join t_race on t_horserace.racedate = t_race.racedate
@@ -142,7 +144,7 @@ def prediction(date, keibajyo_id, racenum):
     select
     t_horserace.horse_id,
     sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
-    sum(t_horserace.kakuteijyuni) as _count
+    sum(1) as _count
     from t_horserace
     group by t_horserace.horse_id
     ) as t_tmp_horse on t_tmp_horse.horse_id = t_horse.id
@@ -152,7 +154,7 @@ def prediction(date, keibajyo_id, racenum):
     t_race.course_id,
     t_race.kyori,
     sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
-    sum(t_horserace.kakuteijyuni) as _count
+    sum(1) as _count
     from t_horserace
     inner join t_race on t_horserace.racedate = t_race.racedate
     and t_horserace.keibajyo_id = t_race.keibajyo_id
@@ -168,7 +170,7 @@ def prediction(date, keibajyo_id, racenum):
     t_race.kyori,
     t_horse.sire_id,
     sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
-    sum(t_horserace.kakuteijyuni) as _count
+    sum(1) as _count
     from t_horserace
     inner join t_horse on t_horserace.horse_id = t_horse.id
     inner join t_race on t_horserace.racedate = t_race.racedate
@@ -186,7 +188,7 @@ def prediction(date, keibajyo_id, racenum):
     t_race.kyori,
     t_horse.broodmare_id,
     sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
-    sum(t_horserace.kakuteijyuni) as _count
+    sum(1) as _count
     from t_horserace
     inner join t_horse on t_horserace.horse_id = t_horse.id
     inner join t_race on t_horserace.racedate = t_race.racedate
@@ -202,7 +204,7 @@ def prediction(date, keibajyo_id, racenum):
     select
     t_horserace.kisyu_id,
     sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
-    sum(t_horserace.kakuteijyuni) as _count
+    sum(1) as _count
     from t_horserace
     where t_horserace.racedate > DATE('{date}') - 30
     group by t_horserace.kisyu_id
@@ -213,7 +215,7 @@ def prediction(date, keibajyo_id, racenum):
     """
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
-        df = pd.io.sql.read_sql_query(query.format(date=date, keibajyo_id=keibajyo_id, racenum=racenum), conn)
+        df = pd.io.sql.read_sql_query(query.format(date=date, keibajyo_id=keibajyo_id, racenum=racenum, bias=BIAS), conn)
 
     f_log = np.log
     df['pa'] = f_log(1 / 18.0)
@@ -225,7 +227,7 @@ def prediction(date, keibajyo_id, racenum):
     df['pa'] = df['pa'].map(np.exp) / df['pa'].map(np.exp).sum()
     df['score'] = (1.0 / df['pa']).round(1)
     df['predict'] = df['score'].rank()
-    return df[['name', 'predict', 'score']].sort_values('predict')
+    return df[['horse_id', 'name', 'predict', 'score']].sort_values('predict')
 
 def prediction_umatan(year, monthday, jyocd, racenum, num=10):
     query = """
@@ -330,15 +332,122 @@ def get_racename(year, monthday, jyocd, racenum):
     else:
         return ""
 
-def get_hist_titiuma(code):
+def get_hist_horse(horse_id):
     query = """
-    SELECT
-    kakuteijyuni,
-    _count,
-    FROM t_titiuma_jyuni
-    WHERE t_titiuma_jyuni.code = '%s'
-    AND t_titiuma_jyuni.jyocd = '%s'
-    AND t_titiuma_jyuni.kyori = '%s'
-    AND t_titiuma_jyuni.course = '%s'
-    AND t_titiuma_jyuni.
+    select
+    t_horserace.kakuteijyuni,
+    sum(1) as _count
+    from t_horserace
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    where t_horserace.horse_id = %s
+    group by t_horserace.kakuteijyuni
     """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (horse_id), conn)
+
+    return pd.merge(
+        pd.DataFrame({'kakuteijyuni': list(range(1, 19))}),
+        df
+    ).sort_values('kakuteijyuni')['_count'].tolist()
+
+def get_hist_sire(sire_id, kyori, course_id):
+    query = """
+    select
+    t_horserace.kakuteijyuni,
+    sum(1) as _count
+    from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    where t_horse.sire_id = %s and t_race.kyori = %s and t_race.course_id = %s
+    group by t_horserace.kakuteijyuni
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (sire_id, kyori, course_id), conn)
+
+    return pd.merge(
+        pd.DataFrame({'kakuteijyuni': list(range(1, 19))}),
+        df
+    ).sort_values('kakuteijyuni')['_count'].tolist()
+
+def get_hist_broodmare(broodmare_id, kyori, course_id):
+    query = """
+    select
+    t_horserace.kakuteijyuni,
+    sum(1) as _count
+    from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    where t_horse.broodmare_id = %s and t_race.kyori = %s and t_race.course_id = %s
+    group by t_horserace.kakuteijyuni
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (broodmare_id, kyori, course_id), conn)
+
+    return pd.merge(
+        pd.DataFrame({'kakuteijyuni': list(range(1, 19))}),
+        df
+    ).sort_values('kakuteijyuni')['_count'].tolist()
+
+def get_hist_kisyu(kisyu_id, date):
+    query = """
+    select
+    t_horserace.kakuteijyuni,
+    sum(1) as _count
+    from t_horserace
+    where t_horserace.kisyu_id = %s and t_horserace.racedate > DATE('%s') - 30
+    group by t_horserace.kakuteijyuni
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (kisyu_id, date), conn)
+
+    return pd.merge(
+        pd.DataFrame({'kakuteijyuni': list(range(1, 19))}),
+        df
+    ).sort_values('kakuteijyuni')['_count'].tolist()
+
+def get_hist(date, keibajyo_id, racenum, horse_id):
+    query = """
+    select horse_id, kisyu_id, course_id, kyori, sire_id, broodmare_id from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    where t_horserace.racedate = DATE('%s')
+    and t_horserace.keibajyo_id = %s
+    and t_horserace.racenum = %s
+    and t_horserace.horse_id = %s
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (date, keibajyo_id, racenum, horse_id), conn)
+    
+    if len(df.index) > 1:
+        app.logger.warning('データが複数ある')
+        raise Exception('データが複数ある')
+
+    elif len(df.index) == 1:
+        row = df.iloc[0]
+        return {
+            "hist_horse": get_hist_horse(horse_id),
+            "hist_sire": get_hist_sire(row['sire_id'], row['kyori'], row['course_id']),
+            "hist_broodmare": get_hist_broodmare(row['sire_id'], row['kyori'], row['course_id']),
+            "hist_kisyu": get_hist_kisyu(row['kisyu_id'], date)
+        }
+    else:
+        app.logger.warning('データがない')
+        raise Exception('データがない')
