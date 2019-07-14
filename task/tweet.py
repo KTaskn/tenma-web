@@ -7,51 +7,123 @@ import datetime
 from requests_oauthlib import OAuth1Session
 import psycopg2
 import pandas as pd
+import numpy as np
 
-def get_text(year, monthday, racenum):
-    dic_jyo = {
-        '01': '札幌',
-        '02': '函館',
-        '03': '福島',
-        '04': '新潟',
-        '05': '東京',
-        '06': '中山',
-        '07': '中京',
-        '08': '京都',
-        '09': '阪神',
-        '10': '小倉'
-    }
+def get_text(date, racenum):
+    BIAS = 0.001
     query = """
-    SELECT
-        t_predict.jyocd,
-        COALESCE(t_name.bamei, '') AS bamei
-    FROM t_predict
-    LEFT JOIN t_name ON t_predict.kettonum = t_name.kettonum
-    LEFT JOIN t_actual ON t_predict.year = t_actual.year
-        AND t_predict.monthday = t_actual.monthday
-        AND t_predict.jyocd = t_actual.jyocd
-        AND t_predict.racenum = t_actual.racenum
-        AND t_predict.kettonum = t_actual.kettonum
-    LEFT JOIN t_umaban ON t_predict.year = t_umaban.year
-        AND t_predict.monthday = t_umaban.monthday
-        AND t_predict.jyocd = t_umaban.jyocd
-        AND t_predict.racenum = t_umaban.racenum
-        AND t_predict.kettonum = t_umaban.kettonum
-    WHERE t_predict.year = '%s'
-    AND t_predict.monthday = '%s'
-    AND t_predict.racenum = '%s'
-    ORDER BY predict;
+    select
+    t_keibajyo.name as keibajyo,
+    t_race.course_id,
+    t_race.kyori,
+    t_horse.id AS horse_id,
+    t_horse.name,
+    t_tmp_horse.win / (select sum(1)::float from t_horserace where kakuteijyuni = 1) + {bias} as pab_horse,
+    t_tmp_horse._count / (select sum(1)::float from t_horserace) + {bias} as pa_horse,
+    case when t_tmp_course.win > 0 then t_tmp_sire.win / t_tmp_course.win::float + {bias} else {bias} end as pab_sire,
+    case when t_tmp_course._count > 0 then t_tmp_sire._count / t_tmp_course._count::float + {bias} else {bias} end as pa_sire,
+    t_tmp_broodmare.win / (select sum(1)::float from t_horserace where kakuteijyuni = 1)  + {bias} as pab_broodmare,
+    t_tmp_broodmare._count / (select sum(1)::float from t_horserace) + {bias} as pa_broodmare,
+    case when (select sum(1)::float from t_horserace where t_horserace.kakuteijyuni = 1 and t_horserace.racedate > DATE('{date}') - 30) > 0
+        then t_tmp_kisyu.win / (select sum(1)::float from t_horserace where t_horserace.kakuteijyuni = 1 and t_horserace.racedate > DATE('{date}') - 30) + {bias}
+        else {bias}
+    end as pab_kisyu,
+    case when (select sum(1)::float from t_horserace where t_horserace.racedate > DATE('{date}') - 30) > 0
+        then t_tmp_kisyu._count / (select sum(1)::float from t_horserace where t_horserace.racedate > DATE('{date}') - 30) + {bias}
+        else {bias}
+    end as pa_kisyu
+    from t_horserace
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_keibajyo on t_horserace.keibajyo_id = t_keibajyo.id
+    left join 
+    (
+    select
+    t_horserace.horse_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(1) as _count
+    from t_horserace
+    group by t_horserace.horse_id
+    ) as t_tmp_horse on t_tmp_horse.horse_id = t_horse.id
+    left join 
+    (
+    select
+    t_race.course_id,
+    t_race.kyori,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(1) as _count
+    from t_horserace
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    group by t_race.course_id, t_race.kyori
+    ) as t_tmp_course
+    on t_tmp_course.course_id = t_race.course_id
+    and t_tmp_course.kyori = t_race.kyori
+    left join 
+    (
+    select
+    t_race.course_id,
+    t_race.kyori,
+    t_horse.sire_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(1) as _count
+    from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    group by t_race.course_id, t_race.kyori, sire_id
+    ) as t_tmp_sire
+    on t_tmp_sire.sire_id = t_horse.sire_id
+    and t_tmp_sire.course_id = t_race.course_id
+    and t_tmp_sire.kyori = t_race.kyori
+    left join
+    (
+    select
+    t_horse.broodmare_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(1) as _count
+    from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    group by broodmare_id
+    ) as t_tmp_broodmare
+    on t_tmp_broodmare.broodmare_id = t_horse.broodmare_id
+    left join
+    (
+    select
+    t_horserace.kisyu_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(1) as _count
+    from t_horserace
+    where t_horserace.racedate > DATE('{date}') - 30
+    group by t_horserace.kisyu_id
+    ) as t_tmp_kisyu on t_tmp_kisyu.kisyu_id = t_horserace.kisyu_id
+    where t_horserace.racedate = DATE('{date}')
+    and t_horserace.racenum = {racenum};
     """
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
-        df = pd.io.sql.read_sql_query(query % (year, monthday, int(racenum)), conn)
+        df = pd.io.sql.read_sql_query(query.format(date=date, racenum=racenum, bias=BIAS), conn)
 
+    f_log = np.log
     if len(df.index) > 0:
         l_text = []
-        for jyocd, grp in df.groupby('jyocd').__iter__():
-            l_bamei = grp['bamei'].values
+        for keibajyo, grp in df.groupby('keibajyo'):
+            grp['pa'] = f_log(1 / 18.0)
+            for col in ['horse', 'sire', 'broodmare', 'kisyu']:
+                pa_col = "pa_%s" % col
+                pab_col = "pab_%s" % col
+                grp['pa'] = grp[pab_col].map(f_log) - grp[pa_col].map(f_log) + grp['pa']
+
+            l_bamei = grp.sort_values('pa', ascending=False)['name'].valuess
             l_text.append("%s %02dR\n ◎ %s\n ○ %s\n ▲%s\n 他のレースも http://tenmaai.info/ で見れます。\n" % (
-                dic_jyo["%02d" % int(jyocd)],
+                keibajyo,
                 int(racenum),
                 l_bamei[0],
                 l_bamei[1],
@@ -83,10 +155,8 @@ if __name__ == "__main__":
     )
 
     today = datetime.date.today()
-    year = today.strftime("%Y")
-    monthday = today.strftime("%m%d")
     racenum = sys.argv[1]
-    l_text = get_text(year, monthday, racenum)
+    l_text = get_text(today, racenum)
     for text in l_text:
         params = {"status": text}
 

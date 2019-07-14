@@ -11,188 +11,216 @@ dbparams = "host={} user={} port={} password={}".format(
 )
 
 def races():
-    dic_jyo = {
-        '01': '札幌',
-        '02': '函館',
-        '03': '福島',
-        '04': '新潟',
-        '05': '東京',
-        '06': '中山',
-        '07': '中京',
-        '08': '京都',
-        '09': '阪神',
-        '10': '小倉'
-    }
     query = """
     SELECT
-        COALESCE(t_predict.year::text, '') AS yaer,
-        LPAD(COALESCE(t_predict.monthday::text, ''), 4, '0') AS monthday,
-        LPAD(COALESCE(t_predict.jyocd::text, ''), 2, '0') AS jyocd,
-        LPAD(COALESCE(t_predict.racenum::text, ''), 2, '0') AS racenum,
-        COALESCE(t_racename.racename::text, '') AS racename
-    FROM t_predict
-    LEFT JOIN t_racename ON t_predict.year = t_racename.year
-        AND t_predict.monthday = t_racename.monthday
-        AND t_predict.jyocd = t_racename.jyocd
-        AND t_predict.racenum = t_racename.racenum
-    WHERE t_predict.year::text = '2019'
-    GROUP BY t_predict.year, t_predict.monthday, t_predict.jyocd, t_predict.racenum, t_racename.racename
-    ORDER BY t_predict.year DESC, t_predict.monthday DESC, t_predict.jyocd, t_predict.racenum::int;
+    TO_CHAR(t_race.racedate, 'yyyymmdd') AS racedate_id,
+    t_race.keibajyo_id,
+    t_race.racenum
+    FROM t_race;
     """
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
-        df = pd.io.sql.read_sql_query(query, conn)
-    l_text = []
-    l_key = []
-    for year, monthday, jyocd, racenum, racename in df.values:
-        l_text.append("%s-%s-%s %s %sR %s" % (year, monthday[:2], monthday[2:4], dic_jyo[jyocd], racenum, racename))
-        l_key.append("%s%s%s%s%s" % (year, monthday[:2], monthday[2:4], jyocd, racenum))
-    return l_text, l_key
+        df = pd.io.sql.read_sql_query(query.format(), conn)
+    
+    l_race = []
+    for racedate_id, keibajyo_id, racenum in df.values:
+        l_race.append('%s%02d%02d' % (racedate_id, keibajyo_id, racenum))
+    return l_race
 
-def races_day(year, monthday):
-    dic_jyo = {
-        '01': '札幌',
-        '02': '函館',
-        '03': '福島',
-        '04': '新潟',
-        '05': '東京',
-        '06': '中山',
-        '07': '中京',
-        '08': '京都',
-        '09': '阪神',
-        '10': '小倉'
-    }
+def races_day(date):
     query = """
     SELECT
-        COALESCE(t_predict.year::text, '') AS yaer,
-        LPAD(COALESCE(t_predict.monthday::text, ''), 4, '0') AS monthday,
-        LPAD(COALESCE(t_predict.jyocd::text, ''), 2, '0') AS jyocd,
-        LPAD(COALESCE(t_predict.racenum::text, ''), 2, '0') AS racenum,
-        COALESCE(t_racename.racename::text, '') AS racename
-    FROM t_predict
-    LEFT JOIN t_racename ON t_predict.year = t_racename.year
-        AND t_predict.monthday = t_racename.monthday
-        AND t_predict.jyocd = t_racename.jyocd
-        AND t_predict.racenum = t_racename.racenum
-    WHERE t_predict.year = '%s'
-    AND t_predict.monthday = '%s'
-    GROUP BY t_predict.year, t_predict.monthday, t_predict.jyocd, t_predict.racenum, t_racename.racename
-    ORDER BY t_predict.year DESC, t_predict.monthday DESC, t_predict.jyocd, t_predict.racenum::int;
+    TO_CHAR(t_race.racedate, 'yyyymmdd') AS racedate_id,
+    TO_CHAR(t_race.racedate, 'yyyy年mm月dd日') AS racedate_disp,
+    LPAD(t_race.keibajyo_id::text, 2, '0') AS keibajyo_id,
+    t_keibajyo.name AS keibajyo_name,
+    LPAD(t_race.racenum::text, 2, '0') AS racenum
+    FROM t_race
+    INNER JOIN t_keibajyo ON t_race.keibajyo_id = t_keibajyo.id
+    WHERE t_race.racedate = DATE('%s')
+    ORDER BY racedate DESC, t_race.keibajyo_id ASC, t_race.racenum ASC;
     """
 
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
-        df = pd.io.sql.read_sql_query(query % (year, monthday), conn)
+        df = pd.io.sql.read_sql_query(query % (date), conn)
     l_text = []
     l_key = []
-    for year, monthday, jyocd, racenum, racename in df.values:
-        l_text.append("%s %sR %s" % (dic_jyo[jyocd], racenum, racename))
-        l_key.append("%s%s%s%s%s" % (year, monthday[:2], monthday[2:4], jyocd, racenum))
+    for racedate_id, racedate_disp, keibajyo_id, keibajyo_name, racenum in df.values:
+        l_text.append("%s %s %sR" % (racedate_disp, keibajyo_name, racenum))
+        l_key.append("%s%s%s" % (racedate_id, keibajyo_id, racenum))
     return l_text, l_key
 
 def racedays():
     query = """
     SELECT
-        CONCAT(COALESCE(t_predict.year::text, ''), LPAD(COALESCE(t_predict.monthday::text, ''), 4, '0')) AS days
-    FROM t_predict
-    GROUP BY days
-    ORDER BY days DESC
-    LIMIT 12;
+    DISTINCT 
+    TO_CHAR(t_race.racedate, 'yyyymmdd') AS racedate_id,
+    TO_CHAR(t_race.racedate, 'yyyy年mm月dd日') AS racedate_disp
+    FROM t_race
+    ORDER BY racedate_id DESC LIMIT 12;
     """
 
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
         df = pd.io.sql.read_sql_query(query, conn)
         
-    return df['days'].values.tolist()
+    return list(zip(
+        df['racedate_id'].values.tolist(),
+        df['racedate_disp'].values.tolist()
+    ))
 
-def keibajyo(year, monthday):
-    dic_jyo = {
-        '01': '札幌',
-        '02': '函館',
-        '03': '福島',
-        '04': '新潟',
-        '05': '東京',
-        '06': '中山',
-        '07': '中京',
-        '08': '京都',
-        '09': '阪神',
-        '10': '小倉'
-    }
+def keibajyo(date):
     query = """
     SELECT
-        LPAD(COALESCE(t_predict.jyocd::text, ''), 2, '0') AS jyocd
-    FROM t_predict
-    WHERE year = '%s' AND monthday = '%s'
-    GROUP BY jyocd
-    ORDER BY jyocd DESC;
+    DISTINCT
+    LPAD(t_race.keibajyo_id::text, 2, '0') AS keibajyo_id,
+    t_keibajyo.name AS keibajyo_name
+    FROM t_race
+    INNER JOIN t_keibajyo ON t_race.keibajyo_id = t_keibajyo.id
+    WHERE t_race.racedate = DATE('%s')
+    ORDER BY keibajyo_id ASC;
     """
 
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
-        df = pd.io.sql.read_sql_query(query % (year, monthday), conn)
+        df = pd.io.sql.read_sql_query(query % (date), conn)
 
-    def func(x):
-        if x in dic_jyo.keys():
-            return dic_jyo[x]
-        else:
-            return ""
-    
     return dict(zip(
-        df['jyocd'].values.tolist(),
-        df['jyocd'].map(func).values.tolist()
+        df['keibajyo_id'].values.tolist(),
+        df['keibajyo_name'].values.tolist()
     ))
 
-def racenum(year, monthday, jyocd):
+def racenum(date, keibajyo_id):
     query = """
     SELECT
-        LPAD(COALESCE(t_predict.racenum::text, ''), 2, '0') AS racenum
-    FROM t_predict
-    WHERE year = '%s' AND monthday = '%s' AND jyocd = '%s'
-    GROUP BY racenum
+    DISTINCT LPAD(t_race.racenum::text, 2, '0') AS racenum
+    FROM t_race
+    WHERE t_race.racedate = DATE('%s') AND t_race.keibajyo_id = %s
     ORDER BY racenum ASC;
     """
 
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
-        df = pd.io.sql.read_sql_query(query % (year, monthday, jyocd), conn)
+        df = pd.io.sql.read_sql_query(query % (date, keibajyo_id), conn)
     
     return df['racenum'].values.tolist()
 
-def prediction(year, monthday, jyocd, racenum):
+def prediction(date, keibajyo_id, racenum):
+    import numpy as np
+    BIAS = 0.001
     query = """
-    SELECT
-        COALESCE(t_umaban.umaban, '') AS umaban,
-        COALESCE(t_name.bamei, '') AS bamei,
-        COALESCE(t_predict.predict::text, '')::int AS predict,
-        COALESCE(t_odds.odds::text, '') AS odds,
-        COALESCE(t_actual.actual::text, '') AS actual
-    FROM t_predict
-    LEFT JOIN t_name ON t_predict.kettonum = t_name.kettonum
-    LEFT JOIN t_actual ON t_predict.year = t_actual.year
-        AND t_predict.monthday = t_actual.monthday
-        AND t_predict.jyocd = t_actual.jyocd
-        AND t_predict.racenum = t_actual.racenum
-        AND t_predict.kettonum = t_actual.kettonum
-    LEFT JOIN t_umaban ON t_predict.year = t_umaban.year
-        AND t_predict.monthday = t_umaban.monthday
-        AND t_predict.jyocd = t_umaban.jyocd
-        AND t_predict.racenum = t_umaban.racenum
-        AND t_predict.kettonum = t_umaban.kettonum
-    LEFT JOIN t_odds ON t_predict.year = t_odds.year
-        AND t_predict.monthday = t_odds.monthday
-        AND t_predict.jyocd = t_odds.jyocd
-        AND t_predict.racenum = t_odds.racenum
-        AND t_predict.kettonum = t_odds.kettonum
-    WHERE t_predict.year = '%s'
-    AND t_predict.monthday = '%s'
-    AND t_predict.jyocd = '%s'
-    AND t_predict.racenum = '%s'
-    ORDER BY predict;
+    select
+    t_keibajyo.name as keibajyo,
+    t_race.course_id,
+    t_race.kyori,
+    t_horse.id AS horse_id,
+    t_horse.name,
+    t_tmp_horse.win / (select sum(1)::float from t_horserace where kakuteijyuni = 1) + {bias} as pab_horse,
+    t_tmp_horse._count / (select sum(1)::float from t_horserace) + {bias} as pa_horse,
+    case when t_tmp_course.win > 0 then t_tmp_sire.win / t_tmp_course.win::float + {bias} else {bias} end as pab_sire,
+    case when t_tmp_course._count > 0 then t_tmp_sire._count / t_tmp_course._count::float + {bias} else {bias} end as pa_sire,
+    t_tmp_broodmare.win / (select sum(1)::float from t_horserace where kakuteijyuni = 1)  + {bias} as pab_broodmare,
+    t_tmp_broodmare._count / (select sum(1)::float from t_horserace) + {bias} as pa_broodmare,
+    case when (select sum(1)::float from t_horserace where t_horserace.kakuteijyuni = 1 and t_horserace.racedate > DATE('{date}') - 30) > 0
+        then t_tmp_kisyu.win / (select sum(1)::float from t_horserace where t_horserace.kakuteijyuni = 1 and t_horserace.racedate > DATE('{date}') - 30) + {bias}
+        else {bias}
+    end as pab_kisyu,
+    case when (select sum(1)::float from t_horserace where t_horserace.racedate > DATE('{date}') - 30) > 0
+        then t_tmp_kisyu._count / (select sum(1)::float from t_horserace where t_horserace.racedate > DATE('{date}') - 30) + {bias}
+        else {bias}
+    end as pa_kisyu
+    from t_horserace
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_keibajyo on t_horserace.keibajyo_id = t_keibajyo.id
+    left join 
+    (
+    select
+    t_horserace.horse_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(1) as _count
+    from t_horserace
+    group by t_horserace.horse_id
+    ) as t_tmp_horse on t_tmp_horse.horse_id = t_horse.id
+    left join 
+    (
+    select
+    t_race.course_id,
+    t_race.kyori,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(1) as _count
+    from t_horserace
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    group by t_race.course_id, t_race.kyori
+    ) as t_tmp_course
+    on t_tmp_course.course_id = t_race.course_id
+    and t_tmp_course.kyori = t_race.kyori
+    left join 
+    (
+    select
+    t_race.course_id,
+    t_race.kyori,
+    t_horse.sire_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(1) as _count
+    from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    group by t_race.course_id, t_race.kyori, sire_id
+    ) as t_tmp_sire
+    on t_tmp_sire.sire_id = t_horse.sire_id
+    and t_tmp_sire.course_id = t_race.course_id
+    and t_tmp_sire.kyori = t_race.kyori
+    left join
+    (
+    select
+    t_horse.broodmare_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(1) as _count
+    from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    group by broodmare_id
+    ) as t_tmp_broodmare
+    on t_tmp_broodmare.broodmare_id = t_horse.broodmare_id
+    left join
+    (
+    select
+    t_horserace.kisyu_id,
+    sum(case t_horserace.kakuteijyuni when 1 then 1 else 0 end) as win,
+    sum(1) as _count
+    from t_horserace
+    where t_horserace.racedate > DATE('{date}') - 30
+    group by t_horserace.kisyu_id
+    ) as t_tmp_kisyu on t_tmp_kisyu.kisyu_id = t_horserace.kisyu_id
+    where t_horserace.racedate = DATE('{date}')
+    and t_horserace.keibajyo_id = {keibajyo_id}
+    and t_horserace.racenum = {racenum};
     """
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
-        return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum)), conn)
+        df = pd.io.sql.read_sql_query(query.format(date=date, keibajyo_id=keibajyo_id, racenum=racenum, bias=BIAS), conn)
+
+    f_log = np.log
+    df['pa'] = f_log(1 / 18.0)
+    for col in ['horse', 'sire', 'broodmare', 'kisyu']:
+        pa_col = "pa_%s" % col
+        pab_col = "pab_%s" % col
+        df['pa'] = df[pab_col].map(f_log) - df[pa_col].map(f_log) + df['pa']
+
+    df['pa'] = df['pa'].map(np.exp) / df['pa'].map(np.exp).sum()
+    df['score'] = (1.0 / df['pa']).round(1)
+    df['predict'] = df['score'].rank()
+    return df[['keibajyo', 'horse_id', 'name', 'predict', 'score']].sort_values('predict')
 
 def prediction_umatan(year, monthday, jyocd, racenum, num=10):
     query = """
@@ -214,70 +242,6 @@ def prediction_umatan(year, monthday, jyocd, racenum, num=10):
         return pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum), int(num)), conn)
 
 
-def get_factor_text(score):
-    if score > 0.5:
-        return "◎%sがとてもよい"
-    elif score > 0.0:
-        return "○%sがよい"
-    elif score > -0.5:
-        return "▲%sが注意"
-    else:
-        return "×%sが不安要素"
-
-def prediction_factor(year, monthday, jyocd, racenum):
-    query = """
-    SELECT
-        COALESCE(t_name.bamei, '') AS bamei,
-        t_factor.factor,
-        t_factor.score
-    FROM t_factor
-    LEFT JOIN t_name AS t_name ON t_factor.kettonum = t_name.kettonum
-    LEFT JOIN t_predict ON t_factor.year = t_predict.year
-        AND t_factor.monthday = t_predict.monthday
-        AND t_factor.jyocd = t_predict.jyocd
-        AND t_factor.racenum = t_predict.racenum
-        AND t_factor.kettonum = t_predict.kettonum
-    WHERE t_factor.year = '%s'
-    AND t_factor.monthday = '%s'
-    AND t_factor.jyocd = '%s'
-    AND t_factor.racenum = '%s'
-    ORDER BY t_predict.predict ASC, t_factor.score DESC;
-    """
-    with psycopg2.connect(dbparams) as conn:
-        conn.set_client_encoding('UTF8')
-        df = pd.io.sql.read_sql_query(query % (year, monthday, int(jyocd), int(racenum)), conn)
-
-    l_factor_detail = []
-    dic_factor = {
-        "kisyucode": "騎手",
-        "ketto3infohansyokunum1": "父馬",
-        "kakuteijyuni_bf1": "１走前",
-        "kakuteijyuni_bf2": "２走前",
-        "kakuteijyuni_bf3": "３走前",
-        "kakuteijyuni_bf4": "４走前",
-    }
-
-    l_idx = []
-    l_name = []
-    l_factor_detail = []
-    for bamei, grp in df.groupby('bamei'):
-        text = ""
-        for idx, row in grp[['score', 'factor']].iterrows():
-            if text:
-                text += "<br />"
-            text += "%s" % (
-                get_factor_text(row['score']) % dic_factor[row['factor']]
-            )
-        l_idx.append(idx)
-        l_name.append(bamei)
-        l_factor_detail.append(text)
-
-    return pd.DataFrame({
-        "idx": l_idx,
-        "bamei": l_name,
-        "factor_detail": l_factor_detail
-    }).sort_values('idx')
-
 def get_racename(year, monthday, jyocd, racenum):
     query = """
     SELECT
@@ -296,3 +260,123 @@ def get_racename(year, monthday, jyocd, racenum):
         return df['racename'].values[0]
     else:
         return ""
+
+def get_hist_horse(horse_id):
+    query = """
+    select
+    t_horserace.kakuteijyuni,
+    sum(1) as _count
+    from t_horserace
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    where t_horserace.horse_id = %s
+    group by t_horserace.kakuteijyuni
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (horse_id), conn)
+
+    return pd.merge(
+        pd.DataFrame({'kakuteijyuni': list(range(1, 19))}),
+        df
+    ).sort_values('kakuteijyuni')['_count'].tolist()
+
+def get_hist_sire(sire_id, kyori, course_id):
+    query = """
+    select
+    t_horserace.kakuteijyuni,
+    sum(1) as _count
+    from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    where t_horse.sire_id = %s and t_race.kyori = %s and t_race.course_id = %s
+    group by t_horserace.kakuteijyuni
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (sire_id, kyori, course_id), conn)
+
+    return pd.merge(
+        pd.DataFrame({'kakuteijyuni': list(range(1, 19))}),
+        df
+    ).sort_values('kakuteijyuni')['_count'].tolist()
+
+def get_hist_broodmare(broodmare_id):
+    query = """
+    select
+    t_horserace.kakuteijyuni,
+    sum(1) as _count
+    from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    where t_horse.broodmare_id = %s
+    group by t_horserace.kakuteijyuni
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (broodmare_id), conn)
+
+    return pd.merge(
+        pd.DataFrame({'kakuteijyuni': list(range(1, 19))}),
+        df
+    ).sort_values('kakuteijyuni')['_count'].tolist()
+
+def get_hist_kisyu(kisyu_id, date):
+    query = """
+    select
+    t_horserace.kakuteijyuni,
+    sum(1) as _count
+    from t_horserace
+    where t_horserace.kisyu_id = %s and t_horserace.racedate > DATE('%s') - 30
+    group by t_horserace.kakuteijyuni
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (kisyu_id, date), conn)
+
+    return pd.merge(
+        pd.DataFrame({'kakuteijyuni': list(range(1, 19))}),
+        df
+    ).sort_values('kakuteijyuni')['_count'].tolist()
+
+def get_hist(date, keibajyo_id, racenum, horse_id):
+    query = """
+    select horse_id, kisyu_id, course_id, kyori, sire_id, broodmare_id from t_horserace
+    inner join t_horse on t_horserace.horse_id = t_horse.id
+    inner join t_race on t_horserace.racedate = t_race.racedate
+    and t_horserace.keibajyo_id = t_race.keibajyo_id
+    and t_horserace.racenum = t_race.racenum
+    where t_horserace.racedate = DATE('%s')
+    and t_horserace.keibajyo_id = %s
+    and t_horserace.racenum = %s
+    and t_horserace.horse_id = %s
+    """
+
+    with psycopg2.connect(dbparams) as conn:
+        conn.set_client_encoding('UTF8')
+        df = pd.io.sql.read_sql_query(query % (date, keibajyo_id, racenum, horse_id), conn)
+    
+    if len(df.index) > 1:
+        app.logger.warning('データが複数ある')
+        raise Exception('データが複数ある')
+
+    elif len(df.index) == 1:
+        row = df.iloc[0]
+        return {
+            "hist_horse": get_hist_horse(horse_id),
+            "hist_sire": get_hist_sire(row['sire_id'], row['kyori'], row['course_id']),
+            "hist_broodmare": get_hist_broodmare(row['broodmare_id']),
+            "hist_kisyu": get_hist_kisyu(row['kisyu_id'], date)
+        }
+    else:
+        app.logger.warning('データがない')
+        raise Exception('データがない')
