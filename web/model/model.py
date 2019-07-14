@@ -14,23 +14,18 @@ def races():
     query = """
     SELECT
     TO_CHAR(t_race.racedate, 'yyyymmdd') AS racedate_id,
-    TO_CHAR(t_race.racedate, 'yyyy年mm月dd日') AS racedate_disp,
-    t_keibajyo.name AS keibajyo_name,
+    t_race.keibajyo_id,
     t_race.racenum
-    FROM t_race
-    INNER JOIN t_keibajyo ON t_race.keibajyo_id = t_keibajyo.id
-    WHERE t_race.racedate >= DATE('2019-01-01')
-    ORDER BY racedate DESC, t_race.keibajyo_id ASC, t_race.racenum ASC;
+    FROM t_race;
     """
     with psycopg2.connect(dbparams) as conn:
         conn.set_client_encoding('UTF8')
-        df = pd.io.sql.read_sql_query(query, conn)
-    l_text = []
-    l_key = []
-    for racedate_id, racedate_disp, keibajyo_name, racenum in df.values:
-        l_text.append("%s %sR %s" % (racedate_disp, racenum, keibajyo_name))
-        l_key.append("%s%s%s" % (racedate_id, keibajyo_name, racenum))
-    return l_text, l_key
+        df = pd.io.sql.read_sql_query(query.format(), conn)
+    
+    l_race = []
+    for racedate_id, keibajyo_id, racenum in df.values:
+        l_race.append('%s%02d%02d' % (racedate_id, keibajyo_id, racenum))
+    return l_race
 
 def races_day(date):
     query = """

@@ -9,14 +9,10 @@ app = Flask(__name__)
 
 @app.route("/")
 def main():
-    races_name, race_key = model.races()
-
     today = date.today()
     races_name_today, race_key_today = model.races_day(today)
 
-    return render_template('index.html',
-        races=zip(races_name, race_key),
-        races_today=zip(races_name_today, race_key_today))
+    return render_template('index.html', races_today=zip(races_name_today, race_key_today))
 
 
 def get_tweet_text(prediction_table, date, keibajyo, racenum):
@@ -29,9 +25,6 @@ def get_tweet_text(prediction_table, date, keibajyo, racenum):
 
 @app.route("/<raceid>")
 def races(raceid):
-
-    races_name, race_key = model.races()
-
     if len(raceid) == 12:
         try:
             date = raceid[:8]
@@ -63,7 +56,6 @@ def races(raceid):
         tweet_text = get_tweet_text(df_prediction, date, df_prediction.ix[0, 'keibajyo'], racenum)
 
     return render_template('list.html',
-        races=zip(races_name, race_key),
         prediction_table=prediction_table,
         tweet_text=tweet_text
     )
@@ -71,17 +63,10 @@ def races(raceid):
 @app.route("/sitemap.xml", methods=['GET'])
 def sitemap():
 
-    races_name, race_key = model.races()
-
-    prediction = pd.DataFrame({
-        "umaban": [],
-        "bamei": [],
-        "predict": [],
-        "actual": [],
-    })
+    l_races = model.races()
 
     sitemap_xml = render_template('sitemap.xml',
-        races=race_key
+        races=l_races
     )
     response = make_response(sitemap_xml)
     response.headers["Content-Type"] = "application/xml"

@@ -117,7 +117,7 @@
                     }).done( (data) => {
                         console.log(data);
                         $.each(data, function(index,val){
-                            $('#daylist').append('<option value="' + index +'">' + val + '</option>');
+                            $('#daylist').append('<option value="' + val[0] +'">' + val[1] + '</option>');
                         });
                     }).fail( (data) => {
                         console.log(data);
