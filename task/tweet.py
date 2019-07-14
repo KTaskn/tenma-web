@@ -121,7 +121,7 @@ def get_text(date, racenum):
                 pab_col = "pab_%s" % col
                 grp['pa'] = grp[pab_col].map(f_log) - grp[pa_col].map(f_log) + grp['pa']
 
-            l_bamei = grp.sort_values('pa', ascending=False)['name'].valuess
+            l_bamei = grp.sort_values('pa', ascending=False)['name'].values
             l_text.append("%s %02dR\n ◎ %s\n ○ %s\n ▲%s\n 他のレースも http://tenmaai.info/ で見れます。\n" % (
                 keibajyo,
                 int(racenum),
