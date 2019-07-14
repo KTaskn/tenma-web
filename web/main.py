@@ -19,26 +19,10 @@ def main():
         races_today=zip(races_name_today, race_key_today))
 
 
-def get_tweet_text(month, day, jyocd, racenum, prediction):
-    dic_jyo = {
-        '01': '札幌',
-        '02': '函館',
-        '03': '福島',
-        '04': '新潟',
-        '05': '東京',
-        '06': '中山',
-        '07': '中京',
-        '08': '京都',
-        '09': '阪神',
-        '10': '小倉'
-    }
-    l_bamei = prediction['bamei'].values
-    text = "%s月%s日%s%02dRレース予想\n" % (
-        month,
-        day,
-        dic_jyo["%02d" % int(jyocd)],
-        int(racenum)
-    )
+def get_tweet_text(prediction_table, date, keibajyo, racenum):
+    l_bamei = prediction_table['name'].values
+    date = "%s年%s月%s日" % (date[:4], date[4:6], date[6:8])
+    text = "%s %s %02dRレース予想\n" % (date, keibajyo, racenum)
     for mark, bamei in zip(["◎", "○", "▲"], l_bamei[:3]):
         text += "%s %s" % (mark, bamei)
     return text
@@ -76,9 +60,12 @@ def races(raceid):
                 score=row['score'],
             )
 
+        tweet_text = get_tweet_text(df_prediction, date, df_prediction.ix[0, 'keibajyo'], racenum)
+
     return render_template('list.html',
         races=zip(races_name, race_key),
-        prediction_table=prediction_table
+        prediction_table=prediction_table,
+        tweet_text=tweet_text
     )
 
 @app.route("/sitemap.xml", methods=['GET'])
