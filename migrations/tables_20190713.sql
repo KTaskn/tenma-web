@@ -1,12 +1,3 @@
-DROP TABLE t_name;
-DROP TABLE t_umaban;
-DROP TABLE t_actual;
-DROP TABLE t_predict;
-DROP TABLE t_umatan;
-DROP TABLE t_factor;
-DROP TABLE t_racename;
-DROP TABLE t_odds;
-
 CREATE TABLE t_keibajyo
 (
 	id serial NOT NULL,
