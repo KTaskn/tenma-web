@@ -70,7 +70,7 @@ def racedays():
         conn.set_client_encoding('UTF8')
         df = pd.io.sql.read_sql_query(query, conn)
         
-    return dict(zip(
+    return list(zip(
         df['racedate_id'].values.tolist(),
         df['racedate_disp'].values.tolist()
     ))

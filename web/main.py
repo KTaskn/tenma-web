@@ -67,7 +67,7 @@ def races(raceid):
         df_prediction = model.prediction(date, keibajyo_id, racenum)
 
         prediction_table = ''
-        template = '<tr class="horse" value="{horse_id}"><td>{name}</td><td>{predict}</td><td>{score}</td></tr>'
+        template = '<tr class="horse" style="cursor: pointer;" value="{horse_id}" horsename="{name}"><td>{name}</td><td>{predict}</td><td>{score}</td></tr>'
         for idx, row in df_prediction.iterrows():
             prediction_table += template.format(
                 horse_id=row['horse_id'],
@@ -141,6 +141,10 @@ def page_not_found(error):
 if __name__ == "__main__":
     # Only for debugging while developing
     app.run()
+
+
+
+
 
 
 

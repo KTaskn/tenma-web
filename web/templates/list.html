@@ -95,7 +95,7 @@
                 }).done( (data) => {
                     console.log(data);
                     $.each(data, function(index,val){
-                        $('#daylist').append('<option value="' + index +'">' + val + '</option>');
+                        $('#daylist').append('<option value="' + val[0] +'">' + val[1] + '</option>');
                     });
                 }).fail( (data) => {
                     console.log(data);
@@ -212,7 +212,7 @@
         <div class="row">
             <div class="col-md-6">
                 <h5>単勝予想</h5>
-                <table class="table table-hover table-predictor">
+                <table  id="table-horse" class="table table-hover table-predictor">
                     <thead class="thead-dark">
                         <tr>
                         <th scope="col">馬名</th>
@@ -226,6 +226,7 @@
                 </table>
             </div>
             <div class="col-md-6">
+                    <h5 id="horsename"></h5>
                     <div class="row">
                         <canvas class="histchart" id="chartUma"></canvas>
                     </div>
@@ -247,27 +248,33 @@
         var myChart = [
         ];
 
-        var plot_hist = function(canvas, data, label){
+        var plot_hist = function(canvas, data, label, color='rgba(255, 99, 132, 1.0)'){
             var ctx = document.getElementById(canvas).getContext('2d');
             ctx.canvas.height = 230;
             if(myChart[canvas]){
                 myChart[canvas].destroy();
             }
             myChart[canvas] = new Chart(ctx,  {
-                type: 'horizontalBar',
+                type: 'bar',
                 data: {
                     labels: Array.from({length: 18}, (v, k) => k).map(x => x + 1),
                     datasets: [{
                         label: label,
                         data: data,
-                        borderWidth: 1
+                        borderWidth: 1,
+                        backgroundColor: color
                     }]
                 },
                 options: {
                     scales: {
                         yAxes: [{
                             ticks: {
-                                beginAtZero: true
+                                beginAtZero: true,
+                                userCallback: function(label, index, labels) {
+                                    if (Math.floor(label) === label) {
+                                        return label;
+                                    }
+                                }
                             }
                         }]
                     },
@@ -288,27 +295,33 @@
                     "horse_id": horse_id
                 }
             }).done( (data) => {
-                plot_hist('chartUma', data['hist_horse'], '過去成績');
-                plot_hist('chartSire', data['hist_sire'], '父馬コース成績');
-                plot_hist('chartBroodmare', data['hist_broodmare'], '母馬過去成績');
-                plot_hist('chartKisyu', data['hist_kisyu'], '騎手直近成績');
+                plot_hist('chartUma', data['hist_horse'], '過去成績', 'rgba(75, 192, 192, 1.0)');
+                plot_hist('chartSire', data['hist_sire'], '父馬コース成績', 'rgba(54, 162, 235, 1.0)');
+                plot_hist('chartBroodmare', data['hist_broodmare'], '母馬過去成績', 'rgba(255, 99, 132, 1.0)');
+                plot_hist('chartKisyu', data['hist_kisyu'], '騎手直近成績', 'rgba(255, 206, 86, 1.0)');
             });
         }
 
-        $(document).on('click', ".horse", function() {
+
+        var plot = function(horse_id, horsename){
             var pathname = $(location).attr('pathname');
             var date = pathname.slice(1, 9);
             var keibajyo_id = pathname.slice(9, 11);
             var racenum = pathname.slice(11, 13);
+            get_hist(date, keibajyo_id, racenum, horse_id);
+            $('#horsename').text(horsename);
+        }
+
+        $(document).on('click', ".horse", function() {
+            var horsename = $(this).attr('horsename');
             var horse_id = $(this).attr("value");
-            get_hist(date, keibajyo_id, racenum, horse_id)
+            plot(horse_id, horsename)
         });
 
-
-        plot_hist('chartUma', Array.from({length: 18}, (v, k) => k).map(x => x * 0), '過去成績');
-        plot_hist('chartSire', Array.from({length: 18}, (v, k) => k).map(x => x * 0), '父馬コース成績');
-        plot_hist('chartBroodmare', Array.from({length: 18}, (v, k) => k).map(x => x * 0), '母馬過去成績');
-        plot_hist('chartKisyu', Array.from({length: 18}, (v, k) => k).map(x => x * 0), '騎手直近成績');
+        plot(
+            $("#table-horse tbody").children('tr:first').attr('value'),
+            $("#table-horse tbody").children('tr:first').attr('horsename')
+        )
 
         </script>
 
