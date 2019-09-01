@@ -360,12 +360,6 @@
             get_hist(date, keibajyo_id, racenum, horse_id);
         }
 
-        $(document).on('click', ".horse", function() {
-            var horsename = $(this).attr('horsename');
-            var horse_id = $(this).attr("value");
-            plot(horse_id, horsename)
-        });
-
         {% for idx, row in df_prediction.iterrows() %}
             plot(
                 '{{ row['horse_id'] }}',
