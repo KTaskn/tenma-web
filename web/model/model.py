@@ -219,7 +219,7 @@ def prediction(date, keibajyo_id, racenum):
 
     df['pa'] = df['pa'].map(np.exp) / df['pa'].map(np.exp).sum()
     df['score'] = (1.0 / df['pa']).round(1)
-    df['predict'] = df['score'].rank()
+    df['predict'] = df['score'].rank().astype(int)
     return df[['keibajyo', 'horse_id', 'name', 'predict', 'score']].sort_values('predict')
 
 def prediction_umatan(year, monthday, jyocd, racenum, num=10):
