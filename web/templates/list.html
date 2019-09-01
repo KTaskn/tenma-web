@@ -271,37 +271,27 @@
             </script>
         </div>
 
+        <h5>単勝予想</h5>
         <div class="row">
-            <div class="col-md-6">
-                <h5>単勝予想</h5>
-                <table  id="table-horse" class="table table-hover table-predictor">
-                    <thead class="thead-dark">
-                        <tr>
-                        <th scope="col">馬名</th>
-                        <th scope="col">予想順位</th>
-                        <th scope="col">予想オッズ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{ prediction_table | safe }}
-                    </tbody>
-                </table>
-            </div>
-            <div class="col-md-6">
-                    <h5 id="horsename"></h5>
+            {% for idx, row in df_prediction.iterrows() %}
+            <div class="col-md-3 border" id="{{row['horse_id']}}">
+                    <h5 class="horsename">{{row['name']}}</h5>
+                    <h5 class="predict">予想着順： {{row['predict']}}</h5>
+                    <h5 class="score">予想オッズ： {{row['score']}}</h5>
                     <div class="row">
-                        <canvas class="histchart" id="chartUma"></canvas>
+                        <canvas class="histchart chartUma"></canvas>
                     </div>
                     <div class="row">
-                        <canvas class="histchart" id="chartSire"></canvas>
+                        <canvas class="histchart chartSire"></canvas>
                     </div>
                     <div class="row">
-                        <canvas class="histchart" id="chartBroodmare"></canvas>
+                        <canvas class="histchart chartBroodmare"></canvas>
                     </div>
                     <div class="row">
-                        <canvas class="histchart" id="chartKisyu"></canvas>
+                        <canvas class="histchart chartKisyu"></canvas>
                     </div>
             </div>
+            {% endfor %}
         </div>
         
 
@@ -310,12 +300,9 @@
         var myChart = [
         ];
 
-        var plot_hist = function(canvas, data, label, color='rgba(255, 99, 132, 1.0)'){
-            var ctx = document.getElementById(canvas).getContext('2d');
+        var plot_hist = function(horse_id, canvas, data, label, color='rgba(255, 99, 132, 1.0)'){
+            var ctx = $('#' + horse_id).find('.' + canvas)[0].getContext('2d');
             ctx.canvas.height = 230;
-            if(myChart[canvas]){
-                myChart[canvas].destroy();
-            }
             myChart[canvas] = new Chart(ctx,  {
                 type: 'bar',
                 data: {
@@ -357,10 +344,10 @@
                     "horse_id": horse_id
                 }
             }).done( (data) => {
-                plot_hist('chartUma', data['hist_horse'], '過去成績', 'rgba(75, 192, 192, 1.0)');
-                plot_hist('chartSire', data['hist_sire'], '父馬コース成績', 'rgba(54, 162, 235, 1.0)');
-                plot_hist('chartBroodmare', data['hist_broodmare'], '母馬過去成績', 'rgba(255, 99, 132, 1.0)');
-                plot_hist('chartKisyu', data['hist_kisyu'], '騎手直近成績', 'rgba(255, 206, 86, 1.0)');
+                plot_hist(horse_id, 'chartUma', data['hist_horse'], '過去成績', 'rgba(75, 192, 192, 1.0)');
+                plot_hist(horse_id, 'chartSire', data['hist_sire'], '父馬コース成績', 'rgba(54, 162, 235, 1.0)');
+                plot_hist(horse_id, 'chartBroodmare', data['hist_broodmare'], '母馬過去成績', 'rgba(255, 99, 132, 1.0)');
+                plot_hist(horse_id, 'chartKisyu', data['hist_kisyu'], '騎手直近成績', 'rgba(255, 206, 86, 1.0)');
             });
         }
 
@@ -371,7 +358,6 @@
             var keibajyo_id = pathname.slice(9, 11);
             var racenum = pathname.slice(11, 13);
             get_hist(date, keibajyo_id, racenum, horse_id);
-            $('#horsename').text(horsename);
         }
 
         $(document).on('click', ".horse", function() {
@@ -380,10 +366,12 @@
             plot(horse_id, horsename)
         });
 
-        plot(
-            $("#table-horse tbody").children('tr:first').attr('value'),
-            $("#table-horse tbody").children('tr:first').attr('horsename')
-        )
+        {% for idx, row in df_prediction.iterrows() %}
+            plot(
+                '{{ row['horse_id'] }}',
+                '{{ row['name'] }}'
+            )
+        {% endfor %}
 
         </script>
 

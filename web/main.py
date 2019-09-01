@@ -47,24 +47,14 @@ def races(raceid):
 
         if len(df_prediction.index) < 1:
             abort(404)
-
-        prediction_table = ''
-        template = '<tr class="horse" style="cursor: pointer;" value="{horse_id}" horsename="{name}"><td>{name}</td><td>{predict}</td><td>{score}</td></tr>'
-        for idx, row in df_prediction.iterrows():
-            prediction_table += template.format(
-                horse_id=row['horse_id'],
-                name=row['name'],
-                predict=row['predict'],
-                score=row['score'],
-            )
             
         tweet_text = get_tweet_text(df_prediction, date, df_prediction.ix[0, 'keibajyo'], racenum)
-        
+
     else:
         abort(404)
 
     return render_template('list.html',
-        prediction_table=prediction_table,
+        df_prediction=df_prediction,
         tweet_text=tweet_text
     )
 
